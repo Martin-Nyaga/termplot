@@ -1,19 +1,37 @@
 require "termplot/version"
+require "optparse"
 
 module Termplot
   class Error < StandardError; end
-  # Your code goes here...
+
+  class CLI
+    def self.run
+      opts = self.parse_options
+      Consumer.new(**opts).run
+    end
+
+    private
+      def self.parse_options
+        options = {}
+        OptionParser.new do |opts|
+          opts.on("-rROWS", "--rows=ROWS", "rows") do |v|
+            options[:rows] = v.to_i
+          end
+
+          opts.on("-cCOLS", "--cols=COLS", "cols") do |v|
+            options[:cols] = v.to_i
+          end
+        end.parse!
+        options
+      end
+  end
 
   class Consumer
     attr_reader :chart, :renderer
 
-    def initialize
+    def initialize(cols:, rows:)
       @chart = Chart.new
-      @renderer = Renderer.new
-    end
-
-    def self.run
-      new.run
+      @renderer = Renderer.new(cols: cols, rows: rows)
     end
 
     def run

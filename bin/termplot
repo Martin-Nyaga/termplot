@@ -2,4 +2,4 @@
 
 require "termplot"
 
-Termplot::Consumer.run
+Termplot::CLI.run
