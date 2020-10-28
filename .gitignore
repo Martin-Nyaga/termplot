@@ -6,3 +6,6 @@
 /pkg/
 /spec/reports/
 /tmp/
+
+squiggles.txt
+Gemfile.lock

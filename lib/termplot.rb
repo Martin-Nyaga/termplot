@@ -1,5 +1,6 @@
 require "termplot/version"
 require "optparse"
+require "termios"
 
 module Termplot
   class Error < StandardError; end
@@ -12,7 +13,7 @@ module Termplot
 
     private
       def self.parse_options
-        options = {}
+        options = { rows: 20, cols: 80 }
         OptionParser.new do |opts|
           opts.on("-rROWS", "--rows=ROWS", "rows") do |v|
             options[:rows] = v.to_i
@@ -39,7 +40,6 @@ module Termplot
         chart.add_point(n.to_f)
         renderer.render(chart)
       end
-
     end
   end
 
@@ -129,13 +129,13 @@ module Termplot
     end
   end
 
-  class FakeCursor < Cursor
+  class VirtualCursor < Cursor
     def position=(n)
       @position = n
     end
   end
 
-  class RealCursor < Cursor
+  class ConsoleCursor < Cursor
     CR = "\r"
     UP = "\e[A"
     DOWN = "\e[B"
@@ -175,8 +175,10 @@ module Termplot
     end
   end
 
+  # TODO: No need for virtual cursor really, only need to keep track of the real
+  # cursor. This would also provide a cleaner API for writing data to the window
   class Window
-    attr_reader :rows, :cols, :buffer, :cursor, :real_cursor
+    attr_reader :rows, :cols, :buffer, :cursor, :console_cursor
     def initialize(cols:, rows:)
       @rows = rows
       @cols = cols
@@ -184,11 +186,11 @@ module Termplot
     end
 
     def cursor
-      @cursor ||= FakeCursor.new(self)
+      @cursor ||= VirtualCursor.new(self)
     end
 
-    def real_cursor
-      @real_cursor ||= RealCursor.new(self)
+    def console_cursor
+      @console_cursor ||= ConsoleCursor.new(self)
     end
 
     def size
@@ -218,11 +220,11 @@ module Termplot
     end
 
     def flush
-      real_cursor.reset_position
+      console_cursor.reset_position
 
       buffer.each_slice(cols).with_index do |line, i|
         line.each do |v|
-          real_cursor.write(v)
+          console_cursor.write(v)
         end
         puts
       end
@@ -238,7 +240,6 @@ module Termplot
       end
     end
   end
-
 
   class Renderer
     attr_reader :cols, :rows, :window
@@ -257,6 +258,8 @@ module Termplot
       @rows = rows
       @window = Window.new(cols: cols, rows: rows)
       @drawn = false
+
+      init_shell
     end
 
     def render(chart)
@@ -292,6 +295,37 @@ module Termplot
     end
 
     private
+    attr_reader :termios_settings
+
+    CURSOR_HIDE = "\e[?25l"
+    CURSOR_SHOW = "\e[?25h"
+    def init_shell
+      # Disable echo on stdout tty, prevents printing chars if you type in
+      # between rendering
+      @termios_settings = Termios.tcgetattr($stdout)
+      new_termios_settings = termios_settings.dup
+      new_termios_settings.c_lflag &= ~(Termios::ECHO)
+      Termios.tcsetattr($stdout, Termios::TCSAFLUSH, new_termios_settings)
+
+      print CURSOR_HIDE
+      at_exit { reset_shell }
+      Signal.trap("INT") { exit(0) }
+    end
+
+    def reset_shell
+      # Reset stdout tty to original settings
+      Termios.tcsetattr($stdout, Termios::TCSAFLUSH, termios_settings)
+
+      print CURSOR_SHOW
+    end
+
+    def with_silent_stderr
+      # original_stderr = $stderr.clone
+      # $stderr.reopen(File.new('/dev/null', 'w'))
+      yield
+    ensure
+      # $stdout.reopen(original_stdout)
+    end
 
     def inner_width
       cols - 2 * border_width
