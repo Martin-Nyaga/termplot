@@ -40,9 +40,8 @@ module Termplot
       window.cursor.reset_position
 
       # Title bar
-      legend = "#{POINT} Series 1"
-      legend_position = [0, (border_size.left + 1 + inner_width) / 2 - legend.length / 2].max
-      # TODO: handle legend overflowing to the right
+      legend = "#{POINT} Super ong legend name that would definitely overflow and is too long to even"
+      legend_position = [1, (border_size.left + 1 + inner_width) / 2 - legend.length / 2].max
       window.cursor.forward(legend_position)
       legend.chars.each do |char|
         window.write(char)
