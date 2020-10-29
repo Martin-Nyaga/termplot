@@ -31,8 +31,8 @@ module Termplot
     attr_reader :chart, :renderer
 
     def initialize(cols:, rows:)
-      @chart = Chart.new
       @renderer = Renderer.new(cols: cols, rows: rows)
+      @chart = Chart.new(max_values: renderer.inner_width)
     end
 
     def run
@@ -44,9 +44,10 @@ module Termplot
   end
 
   class Chart
-    attr_reader :data, :min, :max, :range
-    def initialize
+    attr_reader :data, :min, :max, :range, :max_values
+    def initialize(max_values:)
       @data = []
+      @max_values = max_values
       @min = 0
       @max = 0
       @range = 0
@@ -55,13 +56,18 @@ module Termplot
     def add_point(point)
       @data.push(point)
 
-      @min = point < min ? point : min
-      @max = point > max ? point : max
+      while @data.length > max_values do
+        @data.shift
+      end
+
+      @min = data.min
+      @max = data.max
       @range = max - min
+      @range = 1 if range.zero?
     end
   end
 
-  class Cursor
+  class VirtualCursor
     attr_reader :position, :window
 
     def initialize(window)
@@ -90,52 +96,53 @@ module Termplot
       chars_to_move
     end
 
-    def up
-      if row > 0
-        @position -= window.cols
-        1
-      else
-        0
-      end
+    def up(n=1)
+      return unless row > 0
+      rows_to_move = [n, row].min
+      @position -= rows_to_move * window.cols
+      rows_to_move
     end
 
     def row
       (position / window.cols).floor
     end
 
-    def down
-      if row < (window.rows - 1)
-        @position += window.cols
-        1
-      else
-        0
-      end
+    def col
+      position % window.cols
+    end
+
+    def row=(y)
+      @position = y * window.cols + col
+    end
+
+    def col=(x)
+      beginning_of_line
+      forward(x)
+    end
+
+    def down(n=1)
+      return 0 unless row < (window.rows - 1)
+      rows_to_move = [n, window.rows - 1 - row].min
+      @position += window.cols * rows_to_move
+      rows_to_move
     end
 
     def beginning_of_line
-      @position = (position / window.cols).floor
+      @position = position - (position % window.cols)
     end
 
-    def position=()
-      raise "Cannot set cursor position directly"
+    def position=(n)
+      @position = n
     end
 
     def reset_position
       return if position == 0
-      while row > 0 do
-        up
-      end
+      up(row) # Go up by row num times
       beginning_of_line
     end
   end
 
-  class VirtualCursor < Cursor
-    def position=(n)
-      @position = n
-    end
-  end
-
-  class ConsoleCursor < Cursor
+  class ConsoleCursor < VirtualCursor
     CR = "\r"
     UP = "\e[A"
     DOWN = "\e[B"
@@ -159,13 +166,13 @@ module Termplot
       moved.times { print BACK }
     end
 
-    def up
-      moved = super
+    def up(n=1)
+      moved = super(n)
       moved.times { print UP }
     end
 
-    def down
-      moved = super
+    def down(n=1)
+      moved = super(n)
       moved.times { print DOWN }
     end
 
@@ -173,12 +180,22 @@ module Termplot
       super
       print CR
     end
+
+    def position=()
+      raise "Cannot set cursor position directly"
+    end
+
+    def row=()
+      raise "Cannot set cursor position directly"
+    end
+
+    def col=()
+      raise "Cannot set cursor position directly"
+    end
   end
 
-  # TODO: No need for virtual cursor really, only need to keep track of the real
-  # cursor. This would also provide a cleaner API for writing data to the window
   class Window
-    attr_reader :rows, :cols, :buffer, :cursor, :console_cursor
+    attr_reader :rows, :cols, :buffer
     def initialize(cols:, rows:)
       @rows = rows
       @cols = cols
@@ -202,20 +219,8 @@ module Termplot
       cursor.write(char)
     end
 
-    def advance_cursor(n=1)
-      cursor.forward(n)
-    end
-
-    def reset_cursor
-      cursor.reset_position
-    end
-
-    def set_cursor(position)
-      cursor.position = position
-    end
-
     def clear
-      reset_cursor
+      cursor.reset_position
       size.times { write Renderer::EMPTY }
     end
 
@@ -230,12 +235,16 @@ module Termplot
       end
     end
 
-    def flush_debug
+    def flush_debug(str = "Window")
+      padding = "-" * 10
       puts
-      puts "----"
+      puts padding + " " + str.to_s + " " + padding
       puts
-      buffer.each_slice(cols) do |line|
-        print line
+      buffer.each_slice(cols).with_index do |line, y|
+        render_line = line.each_with_index.map do |c, x|
+          y * cols + x == cursor.position ? "𝥺" : c
+        end
+        print render_line
         puts
       end
     end
@@ -266,38 +275,58 @@ module Termplot
       window.clear
 
       # Map to window coordinates and render to buffer
-      points = map_to_window(chart)
-      points.each_with_index do |point, x|
-        window.set_cursor(point.y * cols + point.x)
+      points, ticks = map_to_window(chart)
+      points.each do |point|
+        window.cursor.position = point.y * cols + point.x
         window.write(POINT)
       end
 
-      window.reset_cursor
+      window.cursor.reset_position
+
       # Top borders
-      window.advance_cursor(border_size.left - 1)
+      window.cursor.down(border_size.top - 1)
+      window.cursor.forward(border_size.left - 1)
       window.write(TOP_LEFT)
       inner_width.times { window.write HORZ }
       window.write(TOP_RIGHT)
+      window.cursor.forward(border_size.right - 1)
 
       inner_height.times do |y|
-        y += 1
-        window.set_cursor(y * cols)
-        window.advance_cursor(border_size.left - 1)
+        window.cursor.forward(border_size.left - 1)
         window.write(VERT)
-        window.advance_cursor(inner_width)
+        window.cursor.forward(inner_width)
         window.write(VERT)
+        window.cursor.forward(border_size.right - 1)
       end
 
       # Bottom border
       # Jump to bottom left corner
-      window.set_cursor((rows - 1) * cols)
-      window.advance_cursor(border_size.left - 1)
+      window.cursor.down
+      window.cursor.beginning_of_line
+      window.cursor.forward(border_size.left - 1)
       window.write(BOT_LEFT)
       inner_width.times { window.write HORZ }
       window.write BOT_RIGHT
 
-      window.flush_debug
-      # window.flush
+      # Draw axis
+      window.cursor.reset_position
+      window.cursor.down(border_size.top - 1)
+      window.cursor.forward(border_size.left + inner_width + 1)
+
+      ticks.each do |tick|
+        window.cursor.row = tick.y
+        tick.label.chars.each do |c|
+          window.write(c)
+        end
+        window.cursor.back(label_chars)
+      end
+
+      # window.flush_debug
+      window.flush
+    end
+
+    def inner_width
+      cols -  border_size.left - border_size.right
     end
 
     private
@@ -325,9 +354,6 @@ module Termplot
       print CURSOR_SHOW
     end
 
-    def inner_width
-      cols -  border_size.left - border_size.right
-    end
 
     def inner_height
       rows - border_size.top - border_size.bottom
@@ -335,20 +361,46 @@ module Termplot
 
     Border = Struct.new(:top, :right, :bottom, :left)
     def border_size
-      @border_size ||= Border.new(1, 5, 1, 2)
+      @border_size ||= Border.new(1, 10, 1, 1)
     end
 
-    Point = Struct.new(:x, :y)
+    Point = Struct.new(:x, :y, :value)
+    Tick = Struct.new(:y, :label)
     def map_to_window(chart)
-      chart.data.last(inner_width).map.with_index do |p, x|
-        # Map from chart Y range to inner height
-        y = 1 + (p.to_f - chart.min) / chart.range * (inner_height - 1)
-        # Invert Y value since pixel Y is inverse of cartesian Y
-        y = inner_height - y.round
+      points =
+        chart.data.last(inner_width).map.with_index do |p, x|
+          # Map from chart Y range to inner height
+          y = 1 + (p.to_f - chart.min) / chart.range * (inner_height - 1)
+          # Invert Y value since pixel Y is inverse of cartesian Y
+          y = inner_height - y.round
 
-        # Add padding for border width
-        Point.new(x + border_size.left, y + border_size.top)
+          # Add padding for border width
+          Point.new(x + border_size.left, y + border_size.top, p.to_f)
+        end
+
+      max_value = points.max_by(&:value).value
+      min_value = points.min_by(&:value).value
+      range = max_value - min_value
+      tick_spacing = 1
+      ticks = []
+      y = border_size.top
+      while y < rows - 2
+        value = max_value - range / (inner_height - 1) * y
+        ticks.push(Tick.new(y, format_label(value)))
+        y += tick_spacing + 1
       end
+      ticks.push(Tick.new(border_size.top + inner_height - 1, format_label(min_value)))
+
+      [points, ticks]
+    end
+
+    # TODO: Better way to format labels based on available space
+    def format_label(num)
+      num.to_s.chars.first(label_chars).join.ljust(label_chars, " ")
+    end
+
+    def label_chars
+      @label_chars ||= border_size.right - 1
     end
 
     def drawn?
