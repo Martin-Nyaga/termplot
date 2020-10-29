@@ -36,7 +36,7 @@ module Termplot
     end
 
     def run
-      while n = gets&.chomp do
+      while n = STDIN.gets&.chomp do
         chart.add_point(n.to_f)
         renderer.render(chart)
       end
@@ -79,7 +79,7 @@ module Termplot
 
     def forward(n = 1)
       movable_chars = window.buffer.size - position
-      chars_to_move = [movable, n].min
+      chars_to_move = [movable_chars, n].min
       @position += chars_to_move
       chars_to_move
     end
@@ -202,8 +202,8 @@ module Termplot
       cursor.write(char)
     end
 
-    def advance
-      cursor.next
+    def advance_cursor(n=1)
+      cursor.forward(n)
     end
 
     def reset_cursor
@@ -274,6 +274,7 @@ module Termplot
 
       window.reset_cursor
       # Top borders
+      window.advance_cursor(border_size.left - 1)
       window.write(TOP_LEFT)
       inner_width.times { window.write HORZ }
       window.write(TOP_RIGHT)
@@ -281,17 +282,22 @@ module Termplot
       inner_height.times do |y|
         y += 1
         window.set_cursor(y * cols)
+        window.advance_cursor(border_size.left - 1)
         window.write(VERT)
-        window.set_cursor(y * cols + (cols - 1))
+        window.advance_cursor(inner_width)
         window.write(VERT)
       end
 
       # Bottom border
+      # Jump to bottom left corner
+      window.set_cursor((rows - 1) * cols)
+      window.advance_cursor(border_size.left - 1)
       window.write(BOT_LEFT)
       inner_width.times { window.write HORZ }
       window.write BOT_RIGHT
 
-      window.flush
+      window.flush_debug
+      # window.flush
     end
 
     private
@@ -319,24 +325,17 @@ module Termplot
       print CURSOR_SHOW
     end
 
-    def with_silent_stderr
-      # original_stderr = $stderr.clone
-      # $stderr.reopen(File.new('/dev/null', 'w'))
-      yield
-    ensure
-      # $stdout.reopen(original_stdout)
-    end
-
     def inner_width
-      cols - 2 * border_width
+      cols -  border_size.left - border_size.right
     end
 
     def inner_height
-      rows - 2 * border_width
+      rows - border_size.top - border_size.bottom
     end
 
-    def border_width
-      1
+    Border = Struct.new(:top, :right, :bottom, :left)
+    def border_size
+      @border_size ||= Border.new(1, 5, 1, 2)
     end
 
     Point = Struct.new(:x, :y)
@@ -348,11 +347,8 @@ module Termplot
         y = inner_height - y.round
 
         # Add padding for border width
-        Point.new(x + border_width, y + border_width)
+        Point.new(x + border_size.left, y + border_size.top)
       end
-    end
-
-    def jump_to_start
     end
 
     def drawn?
