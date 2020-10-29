@@ -1,84 +1,13 @@
-require "termplot/version"
 require "optparse"
 require "termios"
 
+require "termplot/version"
+require "termplot/cli"
+require "termplot/consumer"
+require "termplot/chart"
+
 module Termplot
   class Error < StandardError; end
-
-  class CLI
-    def self.run
-      opts = self.parse_options
-      Consumer.new(**opts).run
-    end
-
-    private
-      def self.parse_options
-        options = { rows: 20, cols: 80, debug: false }
-        OptionParser.new do |opts|
-          opts.banner = "Usage: termplot [OPTIONS]"
-
-          opts.on("-rROWS", "--rows=ROWS", "Number of rows in window") do |v|
-            options[:rows] = v.to_i
-          end
-
-          opts.on("-cCOLS", "--cols=COLS", "Number of cols in window") do |v|
-            options[:cols] = v.to_i
-          end
-
-          opts.on("-d", "--debug", "Enable debug mode.",
-                  "Logs window data to stdout instead of rendering.") do |v|
-            options[:debug] = v
-          end
-
-          opts.on("-h", "--help", "Prints this help") do
-            puts opts
-            exit(0)
-          end
-
-        end.parse!
-        options
-      end
-  end
-
-  class Consumer
-    attr_reader :chart, :renderer
-
-    def initialize(cols:, rows:, debug:)
-      @renderer = Renderer.new(cols: cols, rows: rows, debug: debug)
-      @chart = Chart.new(max_values: renderer.inner_width)
-    end
-
-    def run
-      while n = STDIN.gets&.chomp do
-        chart.add_point(n.to_f)
-        renderer.render(chart)
-      end
-    end
-  end
-
-  class Chart
-    attr_reader :data, :min, :max, :range, :max_values
-    def initialize(max_values:)
-      @data = []
-      @max_values = max_values
-      @min = 0
-      @max = 0
-      @range = 0
-    end
-
-    def add_point(point)
-      @data.push(point)
-
-      while @data.length > max_values do
-        @data.shift
-      end
-
-      @min = data.min
-      @max = data.max
-      @range = max - min
-      @range = 1 if range.zero?
-    end
-  end
 
   class VirtualCursor
     attr_reader :position, :window
