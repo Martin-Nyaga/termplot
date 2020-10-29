@@ -40,7 +40,7 @@ module Termplot
       window.cursor.reset_position
 
       # Title bar
-      legend = "#{POINT} Super ong legend name that would definitely overflow and is too long to even"
+      legend = "#{POINT} #{series.title}"
       legend_position = [1, (border_size.left + 1 + inner_width) / 2 - legend.length / 2].max
       window.cursor.forward(legend_position)
       legend.chars.each do |char|
@@ -137,6 +137,7 @@ module Termplot
 
     Point = Struct.new(:x, :y, :value)
     def build_points(series)
+      return [] if series.data.empty?
       points =
         series.data.last(inner_width).map.with_index do |p, x|
           # Map from series Y range to inner height
@@ -154,6 +155,7 @@ module Termplot
 
     Tick = Struct.new(:y, :label)
     def build_ticks(points)
+      return [] if points.empty?
       max_point = points.max_by(&:value)
       min_point = points.min_by(&:value)
       point_y_range = points.max_by(&:y).y - points.min_by(&:y).y

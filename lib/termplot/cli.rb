@@ -9,7 +9,7 @@ module Termplot
 
     private
     def self.parse_options
-      options = { rows: 20, cols: 80, debug: false }
+      options = { rows: 20, cols: 80, title: "Series", debug: false }
       OptionParser.new do |opts|
         opts.banner = "Usage: termplot [OPTIONS]"
 
@@ -21,8 +21,11 @@ module Termplot
           options[:cols] = v.to_i
         end
 
-        opts.on("-d", "--debug", "Enable debug mode.",
-                "Logs window data to stdout instead of rendering.") do |v|
+        opts.on("-tTITLE", "--title=TITLE", "Title of the series") do |v|
+          options[:title] = v
+        end
+
+        opts.on("-d", "--debug", "Enable debug mode, Logs window data to stdout instead of rendering") do |v|
           options[:debug] = v
         end
 
