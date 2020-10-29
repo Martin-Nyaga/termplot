@@ -13,15 +13,28 @@ module Termplot
 
     private
       def self.parse_options
-        options = { rows: 20, cols: 80 }
+        options = { rows: 20, cols: 80, debug: false }
         OptionParser.new do |opts|
-          opts.on("-rROWS", "--rows=ROWS", "rows") do |v|
+          opts.banner = "Usage: termplot [OPTIONS]"
+
+          opts.on("-rROWS", "--rows=ROWS", "Number of rows in window") do |v|
             options[:rows] = v.to_i
           end
 
-          opts.on("-cCOLS", "--cols=COLS", "cols") do |v|
+          opts.on("-cCOLS", "--cols=COLS", "Number of cols in window") do |v|
             options[:cols] = v.to_i
           end
+
+          opts.on("-d", "--debug", "Enable debug mode.",
+                  "Logs window data to stdout instead of rendering.") do |v|
+            options[:debug] = v
+          end
+
+          opts.on("-h", "--help", "Prints this help") do
+            puts opts
+            exit(0)
+          end
+
         end.parse!
         options
       end
@@ -30,8 +43,8 @@ module Termplot
   class Consumer
     attr_reader :chart, :renderer
 
-    def initialize(cols:, rows:)
-      @renderer = Renderer.new(cols: cols, rows: rows)
+    def initialize(cols:, rows:, debug:)
+      @renderer = Renderer.new(cols: cols, rows: rows, debug: debug)
       @chart = Chart.new(max_values: renderer.inner_width)
     end
 
@@ -261,11 +274,13 @@ module Termplot
     TOP_RIGHT = "┐"
     TOP_LEFT = "┌"
     BOT_RIGHT = "┘"
+    TICK_RIGHT_BORDER = "┤"
 
-    def initialize(cols: 80, rows: 20)
+    def initialize(cols: 80, rows: 20, debug: false)
       @cols = cols
       @rows = rows
       @window = Window.new(cols: cols, rows: rows)
+      @debug = debug
       @drawn = false
 
       init_shell
@@ -274,8 +289,11 @@ module Termplot
     def render(chart)
       window.clear
 
-      # Map to window coordinates and render to buffer
-      points, ticks = map_to_window(chart)
+      # Build points, ticks to render
+      points = build_points(chart)
+      ticks = build_ticks(points)
+
+      # Render points
       points.each do |point|
         window.cursor.position = point.y * cols + point.x
         window.write(POINT)
@@ -313,16 +331,20 @@ module Termplot
       window.cursor.down(border_size.top - 1)
       window.cursor.forward(border_size.left + inner_width + 1)
 
+      # Render ticks
       ticks.each do |tick|
         window.cursor.row = tick.y
+        window.cursor.back
+        window.write(TICK_RIGHT_BORDER)
         tick.label.chars.each do |c|
           window.write(c)
         end
         window.cursor.back(label_chars)
       end
 
-      # window.flush_debug
-      window.flush
+      debug? ?
+        window.flush_debug :
+        window.flush
     end
 
     def inner_width
@@ -354,6 +376,9 @@ module Termplot
       print CURSOR_SHOW
     end
 
+    def debug?
+      @debug
+    end
 
     def inner_height
       rows - border_size.top - border_size.bottom
@@ -365,33 +390,54 @@ module Termplot
     end
 
     Point = Struct.new(:x, :y, :value)
-    Tick = Struct.new(:y, :label)
-    def map_to_window(chart)
+    def build_points(chart)
       points =
         chart.data.last(inner_width).map.with_index do |p, x|
           # Map from chart Y range to inner height
-          y = 1 + (p.to_f - chart.min) / chart.range * (inner_height - 1)
+          y = map_value(p, [chart.min, chart.max], [border_size.top, border_size.top + inner_height - 1])
+
           # Invert Y value since pixel Y is inverse of cartesian Y
-          y = inner_height - y.round
+          y = border_size.top + inner_height - y.round
 
           # Add padding for border width
-          Point.new(x + border_size.left, y + border_size.top, p.to_f)
+          Point.new(x + border_size.left, y, p.to_f)
         end
 
-      max_value = points.max_by(&:value).value
-      min_value = points.min_by(&:value).value
-      range = max_value - min_value
-      tick_spacing = 1
-      ticks = []
-      y = border_size.top
-      while y < rows - 2
-        value = max_value - range / (inner_height - 1) * y
-        ticks.push(Tick.new(y, format_label(value)))
-        y += tick_spacing + 1
-      end
-      ticks.push(Tick.new(border_size.top + inner_height - 1, format_label(min_value)))
+      points
+    end
 
-      [points, ticks]
+    Tick = Struct.new(:y, :label)
+    def build_ticks(points)
+      max_point = points.max_by(&:value)
+      min_point = points.min_by(&:value)
+      point_y_range = points.max_by(&:y).y - points.min_by(&:y).y
+      point_value_range = points.max_by(&:value).value - points.min_by(&:value).value
+      ticks = []
+      ticks.push Tick.new(max_point.y, format_label(max_point.value))
+
+      # Distribute ticks between min and max as evenly as possible
+
+      # spacing is inclusive of the tick row itself
+      spacing = 3
+      unless max_point.value == min_point.value &&
+            (point_y_range - 2) > spacing
+        num_ticks = (point_y_range - 2) / spacing
+        num_ticks.times do |i|
+          tick_y = max_point.y + (i + 1) * spacing
+          value = max_point.value - point_value_range * ((i + 1) * spacing) / point_y_range
+          ticks.push Tick.new(tick_y, format_label(value))
+        end
+      end
+
+      ticks.push Tick.new(min_point.y, format_label(min_point.value))
+      ticks
+    end
+
+    def map_value(val, from_range, to_range)
+      orig_range = [1, (from_range[1] - from_range[0]).abs].max
+      new_range = [1, (to_range[1] - to_range[0]).abs].max
+
+      ((val.to_f - from_range[0]) / orig_range) * new_range + to_range[0]
     end
 
     # TODO: Better way to format labels based on available space
