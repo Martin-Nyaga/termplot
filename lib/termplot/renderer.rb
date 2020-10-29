@@ -39,6 +39,16 @@ module Termplot
 
       window.cursor.reset_position
 
+      # Title bar
+      legend = "#{POINT} Series 1"
+      legend_position = [0, (border_size.left + 1 + inner_width) / 2 - legend.length / 2].max
+      # TODO: handle legend overflowing to the right
+      window.cursor.forward(legend_position)
+      legend.chars.each do |char|
+        window.write(char)
+      end
+      window.cursor.reset_position
+
       # Top borders
       window.cursor.down(border_size.top - 1)
       window.cursor.forward(border_size.left - 1)
@@ -57,8 +67,6 @@ module Termplot
 
       # Bottom border
       # Jump to bottom left corner
-      window.cursor.down
-      window.cursor.beginning_of_line
       window.cursor.forward(border_size.left - 1)
       window.write(BOT_LEFT)
       inner_width.times { window.write HORZ }
@@ -92,6 +100,7 @@ module Termplot
     private
     attr_reader :termios_settings
 
+    # TODO: Maybe move to window?
     CURSOR_HIDE = "\e[?25l"
     CURSOR_SHOW = "\e[?25h"
     def init_shell
@@ -124,7 +133,7 @@ module Termplot
 
     Border = Struct.new(:top, :right, :bottom, :left)
     def border_size
-      @border_size ||= Border.new(1, 10, 1, 1)
+      @border_size ||= Border.new(2, 10, 1, 1)
     end
 
     Point = Struct.new(:x, :y, :value)
@@ -132,10 +141,10 @@ module Termplot
       points =
         series.data.last(inner_width).map.with_index do |p, x|
           # Map from series Y range to inner height
-          y = map_value(p, [series.min, series.max], [border_size.top, border_size.top + inner_height - 1])
+          y = map_value(p, [series.min, series.max], [0, inner_height - 1])
 
           # Invert Y value since pixel Y is inverse of cartesian Y
-          y = border_size.top + inner_height - y.round
+          y = border_size.top - 1 + inner_height - y.round
 
           # Add padding for border width
           Point.new(x + border_size.left, y, p.to_f)
