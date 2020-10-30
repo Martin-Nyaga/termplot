@@ -14,6 +14,13 @@ module Termplot
     BOT_RIGHT = "┘"
     TICK_RIGHT_BORDER = "┤"
 
+    BOT_RIGHT_HEAVY = "┛"
+    TOP_LEFT_HEAVY = "┏"
+    HORZ_HEAVY = "━"
+    VERT_HEAVY = "┃"
+    BOT_LEFT_HEAVY = "┗"
+    TOP_RIGHT_HEAVY = "┓"
+
     def initialize(cols: 80, rows: 20, debug: false)
       @cols = cols
       @rows = rows
@@ -32,9 +39,39 @@ module Termplot
       ticks = build_ticks(points)
 
       # Render points
-      points.each do |point|
+      points.each_with_index do |point, i|
         window.cursor.position = point.y * cols + point.x
-        window.write(POINT)
+        prev_point = ((i - 1) >= 0) ? points[i-1] : nil
+        next_point = ((i + 1) < points.size) ? points[i+1] : nil
+        if prev_point.nil?
+          window.write HORZ_HEAVY
+        elsif prev_point.y > point.y
+          diff = prev_point.y - point.y
+          window.cursor.down diff
+          window.write BOT_RIGHT_HEAVY
+          window.cursor.back
+          (diff - 1).times do
+            window.cursor.up
+            window.write VERT_HEAVY
+            window.cursor.back
+          end
+          window.cursor.up
+          window.write TOP_LEFT_HEAVY
+        elsif prev_point.y < point.y
+          diff = point.y - prev_point.y
+          window.cursor.up diff
+          window.write TOP_RIGHT_HEAVY
+          window.cursor.back
+          (diff - 1).times do
+            window.cursor.down
+            window.write VERT_HEAVY
+            window.cursor.back
+          end
+          window.cursor.down
+          window.write BOT_LEFT_HEAVY
+        else
+          window.write HORZ_HEAVY
+        end
       end
 
       window.cursor.reset_position
