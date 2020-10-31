@@ -173,32 +173,31 @@ module Termplot
         window.write(char_map[:horz_top])
       elsif prev_point.y > point.y
         diff = prev_point.y - point.y
-        window.cursor.down diff
-        window.write(char_map[:bot_right])
+        window.write(char_map[:top_left])
+        window.cursor.down
         window.cursor.back
         (diff - 1).times do
-          window.cursor.up
           window.write(char_map[:vert_right])
+          window.cursor.down
           window.cursor.back
         end
-        window.cursor.up
-        window.write(char_map[:top_left])
+        window.write(char_map[:bot_right])
       elsif prev_point.y < point.y
         diff = point.y - prev_point.y
-        window.cursor.up diff
-        window.write(char_map[:top_right])
+        window.write(char_map[:bot_left])
+        window.cursor.up
         window.cursor.back
         (diff - 1).times do
-          window.cursor.down
           window.write(char_map[:vert_left])
+          window.cursor.up
           window.cursor.back
         end
-        window.cursor.down
-        window.write(char_map[:bot_left])
+        window.write(char_map[:top_right])
       end
     end
 
-    # TODO: Better way to format labels based on available space
+    # TODO: Impemement a better way to format labels based on available space
+    # and precision
     def format_label(num)
       num.to_s.chars.first(label_chars).join.ljust(label_chars, " ")
     end
