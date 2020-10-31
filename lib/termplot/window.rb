@@ -6,7 +6,7 @@ module Termplot
     def initialize(cols:, rows:)
       @rows = rows
       @cols = cols
-      @buffer = Array.new(cols * rows) { Renderer::EMPTY }
+      @buffer = Array.new(cols * rows) { CharacterMap::DEFAULT[:empty] }
     end
 
     def cursor
@@ -28,7 +28,7 @@ module Termplot
 
     def clear
       cursor.reset_position
-      size.times { write Renderer::EMPTY }
+      size.times { write CharacterMap::DEFAULT[:empty] }
     end
 
     def flush

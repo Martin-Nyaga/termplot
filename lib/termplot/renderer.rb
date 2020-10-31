@@ -1,25 +1,11 @@
+# frozen_string_literal: true
+
 require "termplot/window"
+require "termplot/character_map"
 
 module Termplot
   class Renderer
-    attr_reader :cols, :rows, :window
-
-    EMPTY = " "
-    POINT = "•"
-    VERT = "│"
-    HORZ = "─"
-    BOT_LEFT = "└"
-    TOP_RIGHT = "┐"
-    TOP_LEFT = "┌"
-    BOT_RIGHT = "┘"
-    TICK_RIGHT_BORDER = "┤"
-
-    BOT_RIGHT_HEAVY = "┛"
-    TOP_LEFT_HEAVY = "┏"
-    HORZ_HEAVY = "━"
-    VERT_HEAVY = "┃"
-    BOT_LEFT_HEAVY = "┗"
-    TOP_RIGHT_HEAVY = "┓"
+    attr_reader :cols, :rows, :window, :char_map
 
     def initialize(cols: 80, rows: 20, debug: false)
       @cols = cols
@@ -27,6 +13,7 @@ module Termplot
       @window = Window.new(cols: cols, rows: rows)
       @debug = debug
       @drawn = false
+      @char_map = CharacterMap::LINE_HEAVY
 
       init_shell
     end
@@ -41,43 +28,47 @@ module Termplot
       # Render points
       points.each_with_index do |point, i|
         window.cursor.position = point.y * cols + point.x
-        prev_point = ((i - 1) >= 0) ? points[i-1] : nil
-        next_point = ((i + 1) < points.size) ? points[i+1] : nil
-        if prev_point.nil?
-          window.write HORZ_HEAVY
-        elsif prev_point.y > point.y
-          diff = prev_point.y - point.y
-          window.cursor.down diff
-          window.write BOT_RIGHT_HEAVY
-          window.cursor.back
-          (diff - 1).times do
+        if char_map[:extended]
+          prev_point = ((i - 1) >= 0) ? points[i-1] : nil
+          next_point = ((i + 1) < points.size) ? points[i+1] : nil
+          if prev_point.nil?
+            window.write(char_map[:horz_top])
+          elsif prev_point.y > point.y
+            diff = prev_point.y - point.y
+            window.cursor.down diff
+            window.write(char_map[:bot_right])
+            window.cursor.back
+            (diff - 1).times do
+              window.cursor.up
+              window.write(char_map[:vert_right])
+              window.cursor.back
+            end
             window.cursor.up
-            window.write VERT_HEAVY
+            window.write(char_map[:top_left])
+          elsif prev_point.y < point.y
+            diff = point.y - prev_point.y
+            window.cursor.up diff
+            window.write(char_map[:top_right])
             window.cursor.back
-          end
-          window.cursor.up
-          window.write TOP_LEFT_HEAVY
-        elsif prev_point.y < point.y
-          diff = point.y - prev_point.y
-          window.cursor.up diff
-          window.write TOP_RIGHT_HEAVY
-          window.cursor.back
-          (diff - 1).times do
+            (diff - 1).times do
+              window.cursor.down
+              window.write(char_map[:vert_left])
+              window.cursor.back
+            end
             window.cursor.down
-            window.write VERT_HEAVY
-            window.cursor.back
+            window.write(char_map[:bot_left])
+          else
+            window.write(char_map[:horz_top])
           end
-          window.cursor.down
-          window.write BOT_LEFT_HEAVY
         else
-          window.write HORZ_HEAVY
+          window.write(char_map[:point])
         end
       end
 
       window.cursor.reset_position
 
       # Title bar
-      legend = "#{POINT} #{series.title}"
+      legend = "#{char_map[:point]} #{series.title}"
       legend_position = [1, (border_size.left + 1 + inner_width) / 2 - legend.length / 2].max
       window.cursor.forward(legend_position)
       legend.chars.each do |char|
@@ -88,25 +79,25 @@ module Termplot
       # Top borders
       window.cursor.down(border_size.top - 1)
       window.cursor.forward(border_size.left - 1)
-      window.write(TOP_LEFT)
-      inner_width.times { window.write HORZ }
-      window.write(TOP_RIGHT)
+      window.write(border_char_map[:top_left])
+      inner_width.times { window.write(border_char_map[:horz_top]) }
+      window.write(border_char_map[:top_right])
       window.cursor.forward(border_size.right - 1)
 
       inner_height.times do |y|
         window.cursor.forward(border_size.left - 1)
-        window.write(VERT)
+        window.write(border_char_map[:vert_right])
         window.cursor.forward(inner_width)
-        window.write(VERT)
+        window.write(border_char_map[:vert_left])
         window.cursor.forward(border_size.right - 1)
       end
 
       # Bottom border
       # Jump to bottom left corner
       window.cursor.forward(border_size.left - 1)
-      window.write(BOT_LEFT)
-      inner_width.times { window.write HORZ }
-      window.write BOT_RIGHT
+      window.write(border_char_map[:bot_left])
+      inner_width.times { window.write(border_char_map[:horz_top]) }
+      window.write(border_char_map[:bot_right])
 
       # Draw axis
       window.cursor.reset_position
@@ -117,7 +108,7 @@ module Termplot
       ticks.each do |tick|
         window.cursor.row = tick.y
         window.cursor.back
-        window.write(TICK_RIGHT_BORDER)
+        window.write(border_char_map[:tick_right])
         tick.label.chars.each do |c|
           window.write(c)
         end
@@ -161,6 +152,10 @@ module Termplot
 
     def debug?
       @debug
+    end
+
+    def border_char_map
+      CharacterMap::LINE_HEAVY
     end
 
     def inner_height
