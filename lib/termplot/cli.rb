@@ -1,3 +1,4 @@
+require "optparse"
 require "termplot/consumer"
 
 module Termplot

@@ -2,6 +2,7 @@
 
 require "termplot/window"
 require "termplot/character_map"
+require "termplot/shell"
 
 module Termplot
   class Renderer
@@ -13,9 +14,9 @@ module Termplot
       @window = Window.new(cols: cols, rows: rows)
       @debug = debug
       @drawn = false
-      @char_map = CharacterMap::LINE_HEAVY
+      @char_map = CharacterMap::DEFAULT
 
-      init_shell
+      Shell.init
     end
 
     def render(series)
@@ -30,36 +31,7 @@ module Termplot
         window.cursor.position = point.y * cols + point.x
         if char_map[:extended]
           prev_point = ((i - 1) >= 0) ? points[i-1] : nil
-          next_point = ((i + 1) < points.size) ? points[i+1] : nil
-          if prev_point.nil?
-            window.write(char_map[:horz_top])
-          elsif prev_point.y > point.y
-            diff = prev_point.y - point.y
-            window.cursor.down diff
-            window.write(char_map[:bot_right])
-            window.cursor.back
-            (diff - 1).times do
-              window.cursor.up
-              window.write(char_map[:vert_right])
-              window.cursor.back
-            end
-            window.cursor.up
-            window.write(char_map[:top_left])
-          elsif prev_point.y < point.y
-            diff = point.y - prev_point.y
-            window.cursor.up diff
-            window.write(char_map[:top_right])
-            window.cursor.back
-            (diff - 1).times do
-              window.cursor.down
-              window.write(char_map[:vert_left])
-              window.cursor.back
-            end
-            window.cursor.down
-            window.write(char_map[:bot_left])
-          else
-            window.write(char_map[:horz_top])
-          end
+          render_connected_line(prev_point, point)
         else
           window.write(char_map[:point])
         end
@@ -125,37 +97,13 @@ module Termplot
     end
 
     private
-    attr_reader :termios_settings
-
-    # TODO: Maybe move to window?
-    CURSOR_HIDE = "\e[?25l"
-    CURSOR_SHOW = "\e[?25h"
-    def init_shell
-      # Disable echo on stdout tty, prevents printing chars if you type in
-      # between rendering
-      @termios_settings = Termios.tcgetattr($stdout)
-      new_termios_settings = termios_settings.dup
-      new_termios_settings.c_lflag &= ~(Termios::ECHO)
-      Termios.tcsetattr($stdout, Termios::TCSAFLUSH, new_termios_settings)
-
-      print CURSOR_HIDE
-      at_exit { reset_shell }
-      Signal.trap("INT") { exit(0) }
-    end
-
-    def reset_shell
-      # Reset stdout tty to original settings
-      Termios.tcsetattr($stdout, Termios::TCSAFLUSH, termios_settings)
-
-      print CURSOR_SHOW
-    end
 
     def debug?
       @debug
     end
 
     def border_char_map
-      CharacterMap::LINE_HEAVY
+      CharacterMap::DEFAULT
     end
 
     def inner_height
@@ -218,6 +166,36 @@ module Termplot
       new_range = [1, (to_range[1] - to_range[0]).abs].max
 
       ((val.to_f - from_range[0]) / orig_range) * new_range + to_range[0]
+    end
+
+    def render_connected_line(prev_point, point)
+      if prev_point.nil? || (prev_point.y == point.y)
+        window.write(char_map[:horz_top])
+      elsif prev_point.y > point.y
+        diff = prev_point.y - point.y
+        window.cursor.down diff
+        window.write(char_map[:bot_right])
+        window.cursor.back
+        (diff - 1).times do
+          window.cursor.up
+          window.write(char_map[:vert_right])
+          window.cursor.back
+        end
+        window.cursor.up
+        window.write(char_map[:top_left])
+      elsif prev_point.y < point.y
+        diff = point.y - prev_point.y
+        window.cursor.up diff
+        window.write(char_map[:top_right])
+        window.cursor.back
+        (diff - 1).times do
+          window.cursor.down
+          window.write(char_map[:vert_left])
+          window.cursor.back
+        end
+        window.cursor.down
+        window.write(char_map[:bot_left])
+      end
     end
 
     # TODO: Better way to format labels based on available space
