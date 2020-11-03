@@ -10,7 +10,7 @@ module Termplot
 
     private
     def self.parse_options
-      options = { rows: 20, cols: 80, title: "Series", debug: false }
+      options = { rows: 19, cols: 80, title: "Series", debug: false }
       OptionParser.new do |opts|
         opts.banner = "Usage: termplot [OPTIONS]"
 

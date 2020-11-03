@@ -14,7 +14,6 @@ module Termplot
       @window = Window.new(cols: cols, rows: rows)
       @decimals = 2
       @debug = debug
-      @drawn = false
       @char_map = CharacterMap::DEFAULT
 
       # Default border size, right border allocation will change dynamically as
@@ -212,11 +211,7 @@ module Termplot
     end
 
     def label_chars
-      border_size.right - 2
-    end
-
-    def drawn?
-      @drawn
+      border_size.right - 3
     end
 
     def colored(series, text)
