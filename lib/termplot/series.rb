@@ -1,6 +1,7 @@
 module Termplot
   class Series
-    attr_reader :title, :data, :min, :max, :range, :max_data_points
+    attr_reader :title, :data, :min, :max, :range
+    attr_accessor :max_data_points
 
     def initialize(max_data_points:, title: "Series")
       @data = []
@@ -20,7 +21,7 @@ module Termplot
 
       @min = data.min
       @max = data.max
-      @range = max - min
+      @range = (max - min).abs
       @range = 1 if range.zero?
     end
   end

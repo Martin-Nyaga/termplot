@@ -14,6 +14,7 @@ module Termplot
       while n = STDIN.gets&.chomp do
         series.add_point(n.to_f)
         renderer.render(series)
+        series.max_data_points = renderer.inner_width
       end
     end
   end

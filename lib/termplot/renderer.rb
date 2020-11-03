@@ -12,15 +12,22 @@ module Termplot
       @cols = cols
       @rows = rows
       @window = Window.new(cols: cols, rows: rows)
+      @decimals = 2
       @debug = debug
       @drawn = false
       @char_map = CharacterMap::DEFAULT
+      # Default border size, right allocation will change dynamically as data
+      # comes in to account for the length of the numbers to be printed
+      @border_size = Border.new(2, 10, 1, 1)
 
       Shell.init
     end
 
     def render(series)
       window.clear
+
+      # Calculate width of right hand axis
+      calculate_axis_size(series)
 
       # Build points, ticks to render
       points = build_points(series)
@@ -97,6 +104,7 @@ module Termplot
     end
 
     private
+    attr_reader :border_size, :decimals
 
     def debug?
       @debug
@@ -108,11 +116,6 @@ module Termplot
 
     def inner_height
       rows - border_size.top - border_size.bottom
-    end
-
-    Border = Struct.new(:top, :right, :bottom, :left)
-    def border_size
-      @border_size ||= Border.new(2, 10, 1, 1)
     end
 
     Point = Struct.new(:x, :y, :value)
@@ -143,9 +146,8 @@ module Termplot
       ticks = []
       ticks.push Tick.new(max_point.y, format_label(max_point.value))
 
-      # Distribute ticks between min and max as evenly as possible
-
-      # spacing is inclusive of the tick row itself
+      # Distribute ticks between min and max, maintaining spacinig as much as
+      # possible. Spacing is inclusive of the tick row itself.
       spacing = 3
       unless max_point.value == min_point.value &&
           (point_y_range - 2) > spacing
@@ -196,14 +198,21 @@ module Termplot
       end
     end
 
-    # TODO: Impemement a better way to format labels based on available space
-    # and precision
+    # Axis size = length of the longest point value , formatted as a string to
+    # @decimals decimal places, + 2 for some extra buffer + 1 for the border
+    # itself. TODO: This still kind of breaks for very large numbers.
+    Border = Struct.new(:top, :right, :bottom, :left)
+    def calculate_axis_size(series)
+      border_right = series.data.map { |n| n.round(decimals).to_s.length }.max
+      @border_size = Border.new(2, border_right + 3, 1, 1)
+    end
+
     def format_label(num)
-      num.to_s.chars.first(label_chars).join.ljust(label_chars, " ")
+      ("%.2f" % num.round(decimals)).ljust(label_chars, " ")
     end
 
     def label_chars
-      @label_chars ||= border_size.right - 1
+      border_size.right - 2
     end
 
     def drawn?
