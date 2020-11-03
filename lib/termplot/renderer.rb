@@ -2,7 +2,6 @@
 
 require "termplot/window"
 require "termplot/character_map"
-require "termplot/shell"
 require "termplot/colors"
 
 module Termplot
@@ -22,8 +21,6 @@ module Termplot
       # data comes in to account for the length of the numbers to be printed in
       # the axis ticks
       @border_size = Border.new(2, 10, 1, 1)
-
-      Shell.init
     end
 
     def render(series)
