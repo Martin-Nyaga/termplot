@@ -3,6 +3,7 @@
 require "termplot/window"
 require "termplot/character_map"
 require "termplot/shell"
+require "termplot/colors"
 
 module Termplot
   class Renderer
@@ -38,16 +39,16 @@ module Termplot
         window.cursor.position = point.y * cols + point.x
         if char_map[:extended]
           prev_point = ((i - 1) >= 0) ? points[i-1] : nil
-          render_connected_line(prev_point, point)
+          render_connected_line(series, prev_point, point)
         else
-          window.write(char_map[:point])
+          window.write(colored(series, char_map[:point]))
         end
       end
 
       window.cursor.reset_position
 
       # Title bar
-      legend = "#{char_map[:point]} #{series.title}"
+      legend = "#{colored(series, char_map[:point])} #{series.title}"
       legend_position = [1, (border_size.left + 1 + inner_width) / 2 - legend.length / 2].max
       window.cursor.forward(legend_position)
       legend.chars.each do |char|
@@ -170,31 +171,31 @@ module Termplot
       ((val.to_f - from_range[0]) / orig_range) * new_range + to_range[0]
     end
 
-    def render_connected_line(prev_point, point)
+    def render_connected_line(series, prev_point, point)
       if prev_point.nil? || (prev_point.y == point.y)
-        window.write(char_map[:horz_top])
+        window.write(colored(series, char_map[:horz_top]))
       elsif prev_point.y > point.y
         diff = prev_point.y - point.y
-        window.write(char_map[:top_left])
+        window.write(colored(series, char_map[:top_left]))
         window.cursor.down
         window.cursor.back
         (diff - 1).times do
-          window.write(char_map[:vert_right])
+          window.write(colored(series, char_map[:vert_right]))
           window.cursor.down
           window.cursor.back
         end
-        window.write(char_map[:bot_right])
+        window.write(colored(series, char_map[:bot_right]))
       elsif prev_point.y < point.y
         diff = point.y - prev_point.y
-        window.write(char_map[:bot_left])
+        window.write(colored(series, char_map[:bot_left]))
         window.cursor.up
         window.cursor.back
         (diff - 1).times do
-          window.write(char_map[:vert_left])
+          window.write(colored(series, char_map[:vert_left]))
           window.cursor.up
           window.cursor.back
         end
-        window.write(char_map[:top_right])
+        window.write(colored(series, char_map[:top_right]))
       end
     end
 
@@ -217,6 +218,10 @@ module Termplot
 
     def drawn?
       @drawn
+    end
+
+    def colored(series, text)
+      Colors.send(series.color, text)
     end
   end
 end

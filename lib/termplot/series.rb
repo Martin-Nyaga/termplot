@@ -1,6 +1,6 @@
 module Termplot
   class Series
-    attr_reader :title, :data, :min, :max, :range
+    attr_reader :title, :data, :min, :max, :range, :color
     attr_accessor :max_data_points
 
     def initialize(max_data_points:, title: "Series")
@@ -10,6 +10,7 @@ module Termplot
       @max = 0
       @range = 0
       @title = title
+      @color = :red
     end
 
     def add_point(point)
