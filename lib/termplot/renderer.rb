@@ -17,8 +17,10 @@ module Termplot
       @debug = debug
       @drawn = false
       @char_map = CharacterMap::DEFAULT
-      # Default border size, right allocation will change dynamically as data
-      # comes in to account for the length of the numbers to be printed
+
+      # Default border size, right border allocation will change dynamically as
+      # data comes in to account for the length of the numbers to be printed in
+      # the axis ticks
       @border_size = Border.new(2, 10, 1, 1)
 
       Shell.init
