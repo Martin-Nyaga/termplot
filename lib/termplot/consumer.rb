@@ -23,13 +23,16 @@ module Termplot
       consumer = Thread.new do
         while !queue.closed?
           num_samples = queue.size
-          Thread.stop if num_samples == 0
-          num_samples.times do
-            series.add_point(queue.shift)
-          end
+          if num_samples == 0
+            Thread.stop
+          else
+            num_samples.times do
+              series.add_point(queue.shift)
+            end
 
-          renderer.render(series)
-          series.max_data_points = renderer.inner_width
+            renderer.render(series)
+            series.max_data_points = renderer.inner_width
+          end
         end
       end
 
@@ -45,6 +48,7 @@ module Termplot
       # Queue is closed as soon as stdin is closed, and we wait for the consumer
       # to finish rendering
       queue.close
+      consumer.run
       consumer.join
     end
 

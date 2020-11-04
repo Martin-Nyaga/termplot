@@ -5,5 +5,5 @@ gemspec
 
 gem "rake"
 
-gem "pry", require: "pry"
-# gem "pry-byebug", require: "pry-byebug"
+gem "pry"
+gem "pry-byebug"

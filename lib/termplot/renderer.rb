@@ -6,24 +6,25 @@ require "termplot/colors"
 
 module Termplot
   class Renderer
-    attr_reader :cols, :rows, :window, :char_map
+    attr_reader :cols, :rows
 
     def initialize(cols: 80, rows: 20, debug: false)
-      @cols = cols
-      @rows = rows
-      @window = Window.new(cols: cols, rows: rows)
-      @decimals = 2
-      @debug = debug
-      @char_map = CharacterMap::DEFAULT
-
       # Default border size, right border allocation will change dynamically as
       # data comes in to account for the length of the numbers to be printed in
       # the axis ticks
-      @border_size = Border.new(2, 10, 1, 1)
+      @border_size = default_border_size
+      @cols = cols > min_cols ? cols : min_cols
+      @rows = rows > min_rows ? rows : min_rows
+      @window = Window.new(cols: @cols, rows: @rows)
+      @decimals = 2
+      @debug = debug
+      @char_map = CharacterMap::DEFAULT
+      @errors = []
     end
 
     def render(series)
       window.clear
+      errors.clear
 
       # Calculate width of right hand axis
       calculate_axis_size(series)
@@ -46,10 +47,17 @@ module Termplot
       window.cursor.reset_position
 
       # Title bar
-      legend = "#{colored(series, char_map[:point])} #{series.title}"
-      legend_position = [1, (border_size.left + 1 + inner_width) / 2 - legend.length / 2].max
+      legend_marker = colored(series, char_map[:point])
+      title = series.title
+      legend_position = [1, (border_size.left + 1 + inner_width) / 2 - (title.length + 2) / 2].max
       window.cursor.forward(legend_position)
-      legend.chars.each do |char|
+      if (title.length + 2 + legend_position) > cols
+        errors.push(Colors.yellow "Warning: Title has been clipped, consider using more rows with -r")
+        title = title[0..(cols - legend_position - 2)]
+      end
+      window.write(legend_marker)
+      window.write(" ")
+      title.chars.each do |char|
         window.write(char)
       end
       window.cursor.reset_position
@@ -96,6 +104,10 @@ module Termplot
       debug? ?
         window.flush_debug :
         window.flush
+
+      if errors.any?
+        window.print_errors(errors)
+      end
     end
 
     def inner_width
@@ -103,7 +115,7 @@ module Termplot
     end
 
     private
-    attr_reader :border_size, :decimals
+    attr_reader :window, :char_map, :border_size, :decimals, :errors
 
     def debug?
       @debug
@@ -199,19 +211,42 @@ module Termplot
 
     # Axis size = length of the longest point value , formatted as a string to
     # @decimals decimal places, + 2 for some extra buffer + 1 for the border
-    # itself. TODO: This still kind of breaks for very large numbers.
+    # itself. TODO: Warn when axis is clamped because the window is too small
     Border = Struct.new(:top, :right, :bottom, :left)
     def calculate_axis_size(series)
       border_right = series.data.map { |n| n.round(decimals).to_s.length }.max
-      @border_size = Border.new(2, border_right + 3, 1, 1)
+      border_right += 3
+
+      # Clamp border_right at cols - 3 to prevent the renderer from crashing
+      # with very large numbers
+      if border_right > cols - 3
+        errors.push(Colors.yellow "Warning: Axis tick values have been clipped, consider using more columns with -c")
+        border_right = cols - 3
+      end
+
+      @border_size = Border.new(2, border_right, 1, 1)
+    end
+
+    def default_border_size
+      Border.new(2, 4, 1, 1)
+    end
+
+    # At minimum, 2 cols of inner_width for values
+    def min_cols
+      border_size.left + border_size.right + 2
+    end
+
+    # At minimum, 2 rows of inner_height for values
+    def min_rows
+      border_size.top + border_size.bottom + 2
     end
 
     def format_label(num)
-      ("%.2f" % num.round(decimals)).ljust(label_chars, " ")
+      ("%.2f" % num.round(decimals))[0..label_chars - 1].ljust(label_chars, " ")
     end
 
     def label_chars
-      border_size.right - 3
+      border_size.right - 2
     end
 
     def colored(series, text)

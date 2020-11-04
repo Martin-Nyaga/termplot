@@ -60,5 +60,12 @@ module Termplot
         puts
       end
     end
+
+    # TODO: Refine later and include errors properly in the window
+    def print_errors(errors)
+      print errors.join(Termplot::ControlChars::NEWLINE)
+      print Termplot::ControlChars::NEWLINE
+      errors.length.times { print Termplot::ControlChars::UP }
+    end
   end
 end
