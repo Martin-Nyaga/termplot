@@ -45,8 +45,8 @@ module Termplot
         end
       end
 
-      # Main thread will accept samples as fast as they becomes available from stdin,
-      # and wake the consumer thread if its asleep
+      # Main thread will accept samples as fast as they become available from stdin,
+      # and wake the consumer thread to process them if its asleep
       while n = STDIN.gets&.chomp do
         if numeric?(n)
           queue << n.to_f

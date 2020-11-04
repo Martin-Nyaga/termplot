@@ -21,15 +21,15 @@ module Termplot
       OptionParser.new do |opts|
         opts.banner = "Usage: termplot [OPTIONS]"
 
-        opts.on("-rROWS", "--rows ROWS", "Number of rows in the chart window") do |v|
+        opts.on("-rROWS", "--rows ROWS", "Number of rows in the chart window (default: 19)") do |v|
           options[:rows] = v.to_i
         end
 
-        opts.on("-cCOLS", "--cols COLS", "Number of cols in the chart window") do |v|
+        opts.on("-cCOLS", "--cols COLS", "Number of cols in the chart window (default: 80)") do |v|
           options[:cols] = v.to_i
         end
 
-        opts.on("-tTITLE", "--title TITLE", "Title of the series") do |v|
+        opts.on("-tTITLE", "--title TITLE", "Title of the series (default: Series)") do |v|
           options[:title] = v
         end
 
@@ -38,7 +38,7 @@ module Termplot
         end
 
         opts.on("--color COLOR", "Series color, specified as ansi 16-bit color name",
-                "(i.e. black, red, green, yellow, blue, magenta, cyan, white)",
+                "(i.e. black, red [default], green, yellow, blue, magenta, cyan, white)",
                 "with light versions specified as light_{color}") do |v|
           options[:color] = v.downcase
         end
