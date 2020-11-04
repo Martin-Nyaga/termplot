@@ -49,9 +49,7 @@ module Termplot
 
     def flush_debug(str = "Window")
       padding = "-" * 10
-      puts
-      puts padding + " " + str.to_s + " " + padding
-      puts
+      puts "\n#{padding} #{str} #{padding}\n"
       buffer.each_slice(cols).with_index do |line, y|
         render_line = line.each_with_index.map do |c, x|
           y * cols + x == cursor.position ? "𝥺" : c
