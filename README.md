@@ -59,7 +59,7 @@ for i in $(seq 500); do \
   sleep 0.5; \
   done | termplot -t "Sin(x)"
 ```
-![Sine Wave Plot](http://localhost:8080/doc/sin.png)
+![Sine Wave Plot](doc/sin.png)
 
 Total % memory usage:
 ```
@@ -68,7 +68,7 @@ while true; do \
   sleep 0.5; \
   done | termplot -t "Memory (% used)" --color light_magenta --line-style heavy-line
 ```
-![Free Memory % Chart](http://localhost:8080/doc/memory.png)
+![Free Memory % Chart](doc/memory.png)
 
 % CPU usage of a "puma" process:
 ```
@@ -77,7 +77,7 @@ while true; do \
   sleep 0.5; \
   done | termplot -t "Ruby CPU(%)" --color yellow --line-style dot -r10 -c 120
 ```
-![CPU % Chart](http://localhost:8080/doc/cpu.png)
+![CPU % Chart](doc/cpu.png)
 
 
 ## Notes
@@ -112,7 +112,7 @@ while true; do \
   done | termplot -t "TCP Connections"
 ```
 
-![TCP Connections](http://localhost:8080/doc/tcp.png)
+![TCP Connections](doc/tcp.png)
 
 ## Development
 
