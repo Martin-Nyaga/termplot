@@ -2,6 +2,8 @@
 
 Termplot is a simple terminal plotting tool for visualising streaming data.
 
+See the demo on Asciinema:
+
 [![Termplot Demo Asciicast](https://asciinema.org/a/3rzeUSXp2fRjnErX0p3SptP5e.png)](https://asciinema.org/a/3rzeUSXp2fRjnErX0p3SptP5e)
 
 ## Overview
@@ -12,7 +14,7 @@ with any numeric data you can pipe into stdin.
 
 ## Installation
 
-The tool is a ruby gem written and can be installed with:
+The tool is a ruby gem and can be installed with:
 
     $ gem install termplot
 
@@ -87,16 +89,16 @@ while true; do \
   will be plotted with the same amount of space between them.
 - The `while true; do {...}; sleep INTERVAL` is pretty typical, I would like to
   sometime soon implement a `--command "{...}" --interval INTERVAL` which would
-  reduce some of the boilerplate of calling some command at an interval. 
+  reduce some of the boilerplate of calling some command at an interval and make
+  it easy to watch and plot.
 
 ## Background
 
-I once needed to be able to monitor the number of TCP connections in various
-states on my linux machine. I could get the data I needed from `ss` with some
-text processing but I didn't have a quick and easy way to eyeball the overall
-trend.
+I recently needed to be able to monitor the number of open TCP connections on my
+linux machine. I could get the data I needed from `ss` with some text processing
+but I didn't have a quick and easy way to eyeball the overall trend.
 
-I work with ruby, so taking
+I mainly work with ruby, so taking
 inspiration from fantastic libraries like [Unicode Plots
 (Julia)](https://github.com/Evizero/UnicodePlots.jl) and
 [Termeter (Go)](https://github.com/atsaki/termeter), I decided to build something in
