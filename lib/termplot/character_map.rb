@@ -16,7 +16,7 @@ module Termplot
     }
     DEFAULT = LINE
 
-    LINE_HEAVY = DEFAULT.merge(
+    HEAVY_LINE = DEFAULT.merge(
       point:      "━",
       vert_left:  "┃",
       vert_right: "┃",
@@ -34,6 +34,7 @@ module Termplot
       point:      "•",
       extended:   false
     }
+    DOTS = BASIC
 
     X = BASIC.merge(
       point: "x"
@@ -42,5 +43,13 @@ module Termplot
     STAR = BASIC.merge(
       point: "*"
     )
+
+    LINE_STYLES = {
+      "line"       => LINE,
+      "heavy-line" => HEAVY_LINE,
+      "dot"        => DOTS,
+      "star"       => STAR,
+      "x"          => X
+    }
   end
 end

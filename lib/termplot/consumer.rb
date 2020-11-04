@@ -6,9 +6,18 @@ module Termplot
   class Consumer
     attr_reader :series, :renderer
 
-    def initialize(cols:, rows:, debug:, title:)
-      @renderer = Renderer.new(cols: cols, rows: rows, debug: debug)
-      @series = Series.new(title: title, max_data_points: renderer.inner_width)
+    def initialize(cols:, rows:, title:, line_style:, color:, debug:)
+      @renderer = Renderer.new(
+        cols: cols,
+        rows: rows,
+        debug: debug
+      )
+      @series = Series.new(
+        title: title,
+        max_data_points: renderer.inner_width,
+        line_style: line_style,
+        color: color,
+      )
     end
 
     def run

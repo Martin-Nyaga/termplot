@@ -19,7 +19,6 @@ module Termplot
       @decimals = 2
       @tick_spacing = 3
       @debug = debug
-      @char_map = CharacterMap::DEFAULT
       @errors = []
     end
 
@@ -62,7 +61,7 @@ module Termplot
     end
 
     private
-    attr_reader :window, :char_map, :border_size, :errors, :decimals, :tick_spacing
+    attr_reader :window, :border_size, :errors, :decimals, :tick_spacing
 
     def debug?
       @debug
@@ -164,51 +163,51 @@ module Termplot
       # Render points
       points.each_with_index do |point, i|
         window.cursor.position = point.y * cols + point.x
-        if char_map[:extended]
+        if series.line_style[:extended]
           prev_point = ((i - 1) >= 0) ? points[i-1] : nil
           render_connected_line(series, prev_point, point)
         else
-          window.write(colored(series, char_map[:point]))
+          window.write(colored(series, series.line_style[:point]))
         end
       end
     end
 
     def render_connected_line(series, prev_point, point)
       if prev_point.nil? || (prev_point.y == point.y)
-        window.write(colored(series, char_map[:horz_top]))
+        window.write(colored(series, series.line_style[:horz_top]))
       elsif prev_point.y > point.y
         diff = prev_point.y - point.y
 
-        window.write(colored(series, char_map[:top_left]))
+        window.write(colored(series, series.line_style[:top_left]))
         window.cursor.down
         window.cursor.back
 
         (diff - 1).times do
-          window.write(colored(series, char_map[:vert_right]))
+          window.write(colored(series, series.line_style[:vert_right]))
           window.cursor.down
           window.cursor.back
         end
 
-        window.write(colored(series, char_map[:bot_right]))
+        window.write(colored(series, series.line_style[:bot_right]))
       elsif prev_point.y < point.y
         diff = point.y - prev_point.y
 
-        window.write(colored(series, char_map[:bot_left]))
+        window.write(colored(series, series.line_style[:bot_left]))
         window.cursor.up
         window.cursor.back
 
         (diff - 1).times do
-          window.write(colored(series, char_map[:vert_left]))
+          window.write(colored(series, series.line_style[:vert_left]))
           window.cursor.up
           window.cursor.back
         end
 
-        window.write(colored(series, char_map[:top_right]))
+        window.write(colored(series, series.line_style[:top_right]))
       end
     end
 
     def render_title(series)
-      legend_marker = colored(series, char_map[:point])
+      legend_marker = colored(series, series.line_style[:point])
       title = series.title
 
       legend_position = [1, (border_size.left + 1 + inner_width) / 2 - (title.length + 2) / 2].max

@@ -37,10 +37,14 @@ module Termplot
         end
       end
 
+      def fetch(color, default)
+        COLORS.key?(color.to_sym) ? color.to_sym : default.to_sym
+      end
+
       private
 
       def escape_color(color)
-        "\e[3#{COLORS[color]}m"
+        "\e[#{COLORS[color] + 30}m"
       end
 
       def escape_mode(mode)
