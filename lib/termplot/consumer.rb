@@ -5,31 +5,21 @@ require "termplot/producers"
 
 module Termplot
   class Consumer
-    attr_reader :series, :renderer
+    attr_reader :options, :series, :renderer
 
-    def initialize(
-      cols:,
-      rows:,
-      title:,
-      line_style:,
-      color:,
-      debug:,
-      command:,
-      interval:
-    )
+    def initialize(options)
+      @options = options
       @renderer = Renderer.new(
-        cols: cols,
-        rows: rows,
-        debug: debug
+        cols: options.cols,
+        rows: options.rows,
+        debug: options.debug
       )
       @series = Series.new(
-        title: title,
+        title: options.title,
         max_data_points: renderer.inner_width,
-        line_style: line_style,
-        color: color,
+        line_style: options.line_style,
+        color: options.color,
       )
-      @command = command
-      @interval = interval
     end
 
     def run
@@ -75,11 +65,11 @@ module Termplot
     private
 
     def build_producer(queue)
-      if @command
-        Producers::CommandProducer.new(queue, @command, @interval)
-      else
-        Producers::StdinProducer.new(queue)
-      end
+      producer_class = {
+        command: "Termplot::Producers::CommandProducer",
+        stdin: "Termplot::Producers::StdinProducer"
+      }.fetch(options.mode)
+      Object.const_get(producer_class).new(queue, options)
     end
   end
 end

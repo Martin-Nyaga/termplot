@@ -1,18 +1,9 @@
 module Termplot
   module Producers
     class CommandProducer < BaseProducer
-      attr_reader :command, :interval
-
-      def initialize(queue, command, interval)
-        @command = command
-        # Interval is in ms
-        @interval = interval / 1000
-        super(queue)
-      end
-
       def run
         loop do
-          n = `/bin/bash -c '#{command}'`.chomp
+          n = `/bin/bash -c '#{options.command}'`.chomp
           # TODO: Error handling...
 
           if numeric?(n)
@@ -20,7 +11,8 @@ module Termplot
             consumer&.run
           end
 
-          sleep interval
+          # Interval is in ms
+          sleep(options.interval / 1000.0)
         end
       end
     end

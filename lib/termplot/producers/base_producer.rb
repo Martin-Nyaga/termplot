@@ -1,7 +1,8 @@
 module Termplot
   module Producers
     class BaseProducer
-      def initialize(queue)
+      def initialize(queue, options)
+        @options = options
         @queue = queue
         @consumer = nil
       end
@@ -23,7 +24,7 @@ module Termplot
       end
 
       private
-      attr_reader :queue, :consumer
+      attr_reader :queue, :consumer, :options
 
       FLOAT_REGEXP = /^[-+]?[0-9]*\.?[0-9]+$/
       def numeric?(n)
