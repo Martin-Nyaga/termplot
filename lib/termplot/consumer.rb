@@ -1,6 +1,7 @@
 require "termplot/series"
 require "termplot/renderer"
 require "termplot/shell"
+require "termplot/producers"
 
 module Termplot
   class Consumer
@@ -75,76 +76,9 @@ module Termplot
 
     def build_producer(queue)
       if @command
-        WatchProducer.new(queue, @command, @interval)
+        Producers::CommandProducer.new(queue, @command, @interval)
       else
-        StdinProducer.new(queue)
-      end
-    end
-
-    class Producer
-      def initialize(queue)
-        @queue = queue
-        @consumer = nil
-      end
-
-      def register_consumer(consumer)
-        @consumer = consumer
-      end
-
-      def shift
-        queue.shift
-      end
-
-      def closed?
-        queue.closed?
-      end
-
-      def close
-        queue.close
-      end
-
-      private
-      attr_reader :queue, :consumer
-
-      FLOAT_REGEXP = /^[-+]?[0-9]*\.?[0-9]+$/
-      def numeric?(n)
-        n =~ FLOAT_REGEXP
-      end
-    end
-
-    class StdinProducer < Producer
-      def run
-        while n = STDIN.gets&.chomp do
-          if numeric?(n)
-            queue << n.to_f
-            consumer&.run
-          end
-        end
-      end
-    end
-
-    class WatchProducer < Producer
-      attr_reader :command, :interval
-
-      def initialize(queue, command, interval)
-        @command = command
-        # Interval is in ms
-        @interval = interval / 1000
-        super(queue)
-      end
-
-      def run
-        loop do
-          n = `/bin/bash -c '#{command}'`.chomp
-          # TODO: Error handling...
-
-          if numeric?(n)
-            queue << n.to_f
-            consumer&.run
-          end
-
-          sleep interval
-        end
+        Producers::StdinProducer.new(queue)
       end
     end
   end
