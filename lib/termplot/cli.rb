@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "optparse"
 require "termplot/consumer"
 
@@ -16,7 +18,9 @@ module Termplot
         title: "Series",
         line_style: "line",
         color: "red",
-        debug: false
+        debug: false,
+        command: nil,
+        interval: 1000
       }
       OptionParser.new do |opts|
         opts.banner = "Usage: termplot [OPTIONS]"
@@ -41,6 +45,15 @@ module Termplot
                 "(i.e. black, red [default], green, yellow, blue, magenta, cyan, white)",
                 "with light versions specified as light_{color}") do |v|
           options[:color] = v.downcase
+        end
+
+        opts.on("--command COMMAND", "Enables watch mode, where input is received by executing",
+                                     "the specified command in intervals rather than from stdin") do |v|
+          options[:command] = v
+        end
+
+        opts.on("--interval INTERVAL", "The interval at which to run the specified command in watch mode in ms (default 1000)") do |v|
+          options[:interval] = v.to_i
         end
 
         opts.on("-d", "--debug", "Enable debug mode, Logs window data to stdout instead of rendering") do |v|

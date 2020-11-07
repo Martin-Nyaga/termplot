@@ -6,7 +6,16 @@ module Termplot
   class Consumer
     attr_reader :series, :renderer
 
-    def initialize(cols:, rows:, title:, line_style:, color:, debug:)
+    def initialize(
+      cols:,
+      rows:,
+      title:,
+      line_style:,
+      color:,
+      debug:,
+      command:,
+      interval:
+    )
       @renderer = Renderer.new(
         cols: cols,
         rows: rows,
@@ -18,6 +27,8 @@ module Termplot
         line_style: line_style,
         color: color,
       )
+      @command = command
+      @interval = interval
     end
 
     def run
@@ -27,7 +38,7 @@ module Termplot
       # Consumer thread will process and render any available input in the
       # queue. If samples are available faster than it can render, multiple
       # samples will be shifted from the queue so they can be rendered at once.
-      # If no samples are available but stdin is open, it will sleep until
+      # If no samples are available but the queue is open, it will sleep until
       # woken to render new input.
       consumer = Thread.new do
         while !queue.closed?
@@ -45,27 +56,96 @@ module Termplot
         end
       end
 
-      # Main thread will accept samples as fast as they become available from stdin,
-      # and wake the consumer thread to process them if its asleep
-      while n = STDIN.gets&.chomp do
-        if numeric?(n)
-          queue << n.to_f
-          consumer.run
-        end
-      end
+      # Producer will run in the main thread and will block while producing
+      # samples from some source (which depends on the type of producer).
+      # Samples will be added to the queue as they are available, and the
+      # consumer will be woken to check the queue
+      producer = build_producer(queue)
+      producer.register_consumer(consumer)
+      producer.run
 
-      # Queue is closed as soon as stdin is closed, and we wait for the consumer
-      # to finish rendering
-      queue.close
+      # As soon as producer continues, and we first give the consumer a chance
+      # to finish rendering the queue, then close the queue.
       consumer.run
+      producer.close
       consumer.join
     end
 
     private
 
-    FLOAT_REGEXP = /^[-+]?[0-9]*\.?[0-9]+$/
-    def numeric?(n)
-      n =~ FLOAT_REGEXP
+    def build_producer(queue)
+      if @command
+        WatchProducer.new(queue, @command, @interval)
+      else
+        StdinProducer.new(queue)
+      end
+    end
+
+    class Producer
+      def initialize(queue)
+        @queue = queue
+        @consumer = nil
+      end
+
+      def register_consumer(consumer)
+        @consumer = consumer
+      end
+
+      def shift
+        queue.shift
+      end
+
+      def closed?
+        queue.closed?
+      end
+
+      def close
+        queue.close
+      end
+
+      private
+      attr_reader :queue, :consumer
+
+      FLOAT_REGEXP = /^[-+]?[0-9]*\.?[0-9]+$/
+      def numeric?(n)
+        n =~ FLOAT_REGEXP
+      end
+    end
+
+    class StdinProducer < Producer
+      def run
+        while n = STDIN.gets&.chomp do
+          if numeric?(n)
+            queue << n.to_f
+            consumer&.run
+          end
+        end
+      end
+    end
+
+    class WatchProducer < Producer
+      attr_reader :command, :interval
+
+      def initialize(queue, command, interval)
+        @command = command
+        # Interval is in ms
+        @interval = interval / 1000
+        super(queue)
+      end
+
+      def run
+        loop do
+          n = `/bin/bash -c '#{command}'`.chomp
+          # TODO: Error handling...
+
+          if numeric?(n)
+            queue << n.to_f
+            consumer&.run
+          end
+
+          sleep interval
+        end
+      end
     end
   end
 end
