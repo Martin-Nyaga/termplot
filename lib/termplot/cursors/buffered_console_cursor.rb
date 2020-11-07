@@ -1,70 +1,69 @@
-require "termplot/cursors/virtual_cursor"
-require "termplot/cursors/control_chars"
-
 module Termplot
-  class BufferedConsoleCursor < VirtualCursor
-    include Termplot::ControlChars
-    attr_reader :buffer
+  module Cursors
+    class BufferedConsoleCursor < VirtualCursor
+      include Termplot::ControlChars
+      attr_reader :buffer
 
-    def initialize(window, buffer)
-      super(window)
-      @buffer = buffer
-    end
-
-    def write(char)
-      if writeable?
-        buffer << char
-        super(char)
+      def initialize(window, buffer)
+        super(window)
+        @buffer = buffer
       end
-    end
 
-    def forward(n = 1)
-      moved = super(n)
-      moved.times { buffer << FORWARD }
-    end
+      def write(char)
+        if writeable?
+          buffer << char
+          super(char)
+        end
+      end
 
-    def back(n = 1)
-      moved = super(n)
-      moved.times { buffer << BACK }
-    end
+      def forward(n = 1)
+        moved = super(n)
+        moved.times { buffer << FORWARD }
+      end
 
-    def up(n=1)
-      moved = super(n)
-      moved.times { buffer << UP }
-    end
+      def back(n = 1)
+        moved = super(n)
+        moved.times { buffer << BACK }
+      end
 
-    def down(n=1)
-      moved = super(n)
-      moved.times { buffer << DOWN }
-    end
+      def up(n=1)
+        moved = super(n)
+        moved.times { buffer << UP }
+      end
 
-    def beginning_of_line
-      super
-      buffer << CR
-    end
+      def down(n=1)
+        moved = super(n)
+        moved.times { buffer << DOWN }
+      end
 
-    def new_line
-      buffer << NEWLINE
-    end
+      def beginning_of_line
+        super
+        buffer << CR
+      end
 
-    def clear_buffer
-      buffer.clear
-    end
+      def new_line
+        buffer << NEWLINE
+      end
 
-    def flush
-      print buffer.join
-    end
+      def clear_buffer
+        buffer.clear
+      end
 
-    def position=()
-      raise "Cannot set cursor position directly"
-    end
+      def flush
+        print buffer.join
+      end
 
-    def row=()
-      raise "Cannot set cursor position directly"
-    end
+      def position=()
+        raise "Cannot set cursor position directly"
+      end
 
-    def col=()
-      raise "Cannot set cursor position directly"
+      def row=()
+        raise "Cannot set cursor position directly"
+      end
+
+      def col=()
+        raise "Cannot set cursor position directly"
+      end
     end
   end
 end

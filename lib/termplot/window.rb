@@ -1,5 +1,5 @@
-require "termplot/cursors/virtual_cursor"
-require "termplot/cursors/buffered_console_cursor"
+require "termplot/control_chars"
+require "termplot/cursors"
 
 module Termplot
   class Window
@@ -11,14 +11,14 @@ module Termplot
     end
 
     def cursor
-      @cursor ||= VirtualCursor.new(self)
+      @cursor ||= Termplot::Cursors::VirtualCursor.new(self)
     end
 
     def console_cursor
       # Console buffer has an extra rows - 1 to account for new line characters
       # between rows
       @console_cursor ||=
-        BufferedConsoleCursor.new(self, Array.new(cols * rows + rows - 1))
+        Termplot::Cursors::BufferedConsoleCursor.new(self, Array.new(cols * rows + rows - 1))
     end
 
     def size
