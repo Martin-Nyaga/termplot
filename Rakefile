@@ -1,8 +1,7 @@
 require "bundler/gem_tasks"
 
 task :bin do
-  Bundler.require(:default)
-  exec "bin/termplot", *ARGV[2..-1]
+  exec "ruby", "-Ilib", "bin/termplot", *ARGV[2..-1]
 end
 
 task :sin_test do
@@ -16,3 +15,6 @@ task :sin_test do
   exec cmd
 end
 
+task :command_test do
+  exec "ruby -Ilib bin/termplot --command 'echo $RANDOM' --interval 900"
+end

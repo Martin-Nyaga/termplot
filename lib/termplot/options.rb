@@ -1,17 +1,19 @@
 # frozen_string_literal: true
 
 require "optparse"
+require "termplot/character_map"
+require "termplot/colors"
 
 module Termplot
   class Options
     attr_reader :rows,
-                :cols,
-                :title,
-                :line_style,
-                :color,
-                :debug,
-                :command,
-                :interval
+      :cols,
+      :title,
+      :line_style,
+      :color,
+      :debug,
+      :command,
+      :interval
 
     def initialize
       @rows       = 19
@@ -29,51 +31,101 @@ module Termplot
     end
 
     def parse_options!
-     OptionParser.new do |opts|
+      # Debug option is parsed manually to prevent it from showing up in the
+      # options help
+      parse_debug
+
+      OptionParser.new do |opts|
         opts.banner = "Usage: termplot [OPTIONS]"
 
-        opts.on("-rROWS", "--rows ROWS", "Number of rows in the chart window (default: 19)") do |v|
-          @rows = v.to_i
-        end
-
-        opts.on("-cCOLS", "--cols COLS", "Number of cols in the chart window (default: 80)") do |v|
-          @cols = v.to_i
-        end
-
-        opts.on("-tTITLE", "--title TITLE", "Title of the series (default: Series)") do |v|
-          @title = v
-        end
-
-        opts.on("--line-style STYLE", "Line style. Options are: line [default], heavy-line, dot, star, x") do |v|
-          @line_style = v.downcase
-        end
-
-        opts.on("--color COLOR", "Series color, specified as ansi 16-bit color name",
-                "(i.e. black, red [default], green, yellow, blue, magenta, cyan, white)",
-                "with light versions specified as light_{color}") do |v|
-          @color = v.downcase
-        end
-
-        opts.on("--command COMMAND", "Enables command mode, where input is received by executing",
-                                     "the specified command in intervals rather than from stdin") do |v|
-          @command = v
-        end
-
-        opts.on("--interval INTERVAL", "The interval at which to run the specified command in command mode in ms (default 1000)") do |v|
-          @interval = v.to_i
-          pp @interval
-        end
-
-        opts.on("-d", "--debug", "Enable debug mode, Logs window data to stdout instead of rendering") do |v|
-          @debug = v
-        end
+        parse_rows(opts)
+        parse_cols(opts)
+        parse_title(opts)
+        parse_line_style(opts)
+        parse_color(opts)
+        parse_command(opts)
+        parse_interval(opts)
 
         opts.on("-h", "--help", "Display this help message") do
           puts opts
           exit(0)
         end
+
       end.parse!
       self
+    end
+
+    private
+
+    def parse_rows(opts)
+      opts.on("-r ROWS", "--rows ROWS",
+              "Number of rows in the chart window (default: #{@rows})") do |v|
+        @rows = v.to_i
+      end
+    end
+
+    def parse_cols(opts)
+      opts.on("-c COLS", "--cols COLS",
+              "Number of cols in the chart window (default: #{@cols})") do |v|
+        @cols = v.to_i
+      end
+    end
+
+    def parse_title(opts)
+      opts.on("-tTITLE", "--title TITLE",
+              "Title of the series (default: '#{@title}')") do |v|
+        @title = v
+      end
+    end
+
+    def parse_line_style(opts)
+      line_style_opts = with_default(Termplot::CharacterMap::LINE_STYLES.keys, @line_style)
+      opts.on("--line-style STYLE",
+              "Line style. Options are: #{line_style_opts.join(", ")}") do |v|
+        @line_style = v.downcase
+      end
+    end
+
+    def parse_color(opts)
+      color_opts = Termplot::Colors::COLORS.keys.map(&:to_s).reject do |c|
+        c == :default
+      end
+      color_opts = with_default(color_opts, @color)
+      opts.on("--color COLOR",
+              "Series color, specified as ansi 16-bit color name:",
+              "(i.e. #{color_opts.join(", ")})") do |v|
+        @color = v.downcase
+      end
+    end
+
+    def parse_command(opts)
+      opts.on("--command COMMAND",
+              "Enables command mode, where input is received by executing",
+              "the specified command in intervals rather than from stdin") do |v|
+        @command = v
+      end
+    end
+
+    def parse_interval(opts)
+      opts.on("--interval INTERVAL",
+              "The interval at which to run the specified command in",
+              "command mode in milliseconds (default: #{@interval})") do |v|
+        @interval = v.to_i
+      end
+    end
+
+    def parse_debug
+      if ARGV.delete("--debug") || ARGV.delete("-d")
+        @debug = true
+      end
+    end
+
+    def with_default(opt_arr, default)
+      opt_arr.map do |opt|
+        opt == default ?
+          opt + " (default)" :
+          opt
+      end
     end
   end
 end
