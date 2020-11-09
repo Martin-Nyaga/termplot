@@ -4,7 +4,7 @@ Termplot is a simple terminal plotting tool for visualising streaming data.
 
 See the demo on Asciinema:
 
-[![Termplot Demo Asciicast](https://asciinema.org/a/3rzeUSXp2fRjnErX0p3SptP5e.png)](https://asciinema.org/a/3rzeUSXp2fRjnErX0p3SptP5e)
+[![Termplot Demo Asciicast](https://asciinema.org/a/370325.svg)](https://asciinema.org/a/3rzeUSXp2fRjnErX0p3SptP5e)
 
 ## Overview
 
@@ -27,26 +27,34 @@ The basic usage is simple:
 ```
 
 `{command}` is any command that will periodically output numbers to standard out
-delimited by a newline. Options and examples are given below. All command line
-options are optional.
+delimited by a newline. You can also instead specify a command to run at a given
+interval to produce the data.
 
-Options:
+Options and examples are given below. All command line options are
+optional.
 
 ```
 Usage: termplot [OPTIONS]
-  -r, --rows ROWS         Number of rows in the chart window (default: 19)
-  -c, --cols COLS         Number of cols in the chart window (default: 80)
-  -t, --title TITLE       Title of the series (default: Series)
+  -r, --rows ROWS          Number of rows in the chart window (default: 19)
 
-      --line-style STYLE  Line style. Options are:
-                            line [default], heavy-line, dot, star, x
+  -c, --cols COLS          Number of cols in the chart window (default: 80)
 
-      --color COLOR       Series color, specified as ansi 16-bit color name:
-                            (i.e. black, red [default], green, yellow, blue,
-                            magenta, cyan, white). Light versions are specified
-                            as light_{color}
+  -t, --title TITLE        Title of the series (default: 'Series')
 
-  -h, --help              Display this help message
+      --line-style STYLE   Line style. Options are: line (default), heavy-line, dot, star, x
+
+      --color COLOR        Series color, specified as ansi 16-bit color name:
+                           (i.e. black, light_black, red (default), light_red, green,
+                           light_green, yellow, light_yellow, blue, light_blue, magenta,
+                           light_magenta, cyan, light_cyan, white, light_white, default)
+
+      --command COMMAND    Enables command mode, where input is received by executing
+                           the specified command in intervals rather than from stdin
+
+      --interval INTERVAL  The interval at which to run the specified command in
+                           command mode in milliseconds (default: 1000)
+
+  -h, --help               Display this help message
 ```
 
 ## Examples
@@ -63,19 +71,15 @@ for i in $(seq 500); do \
 
 Total % memory usage:
 ```
-while true; do \
-  free | awk 'NR==2 { print ($3/$2) * 100 }'; \
-  sleep 0.5; \
-  done | termplot -t "Memory (% used)" --color light_magenta --line-style heavy-line
+termplot --command "free | awk 'NR==2 { print ($3/$2) * 100 }'" \
+  -t "Memory (% used)" --color light_magenta --line-style heavy-line
 ```
 ![Free Memory % Chart](doc/memory.png)
 
 % CPU usage of a "puma" process:
 ```
-while true; do \
-  ps au | grep puma | awk 'NR==1{ print $3 }'; \
-  sleep 0.5; \
-  done | termplot -t "Ruby CPU(%)" --color yellow --line-style dot -r10 -c 120
+termplot --command "ps au | grep puma | awk 'NR==1{ print $3 }'" \
+  -t "Ruby CPU(%)" --color yellow --line-style dot -r10 -c 120
 ```
 ![CPU % Chart](doc/cpu.png)
 
@@ -87,10 +91,6 @@ while true; do \
 - The samples received are plotted in sequence order, and there is no notion of
   temporal spacing. So even if the time between samples is inconsistent, they
   will be plotted with the same amount of space between them.
-- The `while true; do {...}; sleep INTERVAL` is pretty typical, I would like to
-  sometime soon implement a `--command "{...}" --interval INTERVAL` which would
-  reduce some of the boilerplate of calling some command at an interval and make
-  it easy to watch and plot.
 
 ## Background
 
@@ -107,9 +107,7 @@ ruby.
 Now with termplot, it's as easy as:
 
 ```
-while true; do \
-  ss -s | head -n1 | cut -d ' ' -f2; sleep 1; \
-  done | termplot -t "TCP Connections"
+termplot --command "ss -s | head -n1 | cut -d' ' -f2" --interval 500 -t "TCP Connections"
 ```
 
 ![TCP Connections](doc/tcp.png)
