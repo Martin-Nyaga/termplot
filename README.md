@@ -56,10 +56,12 @@ Usage: termplot [OPTIONS]
 
   -h, --help               Display this help message
 ```
+Note: Make sure to wrap your command in single quotes when using `--command` if
+you use shell variables (e.g. `$1`) in your command.
 
 ## Examples
 
-Sine wave:
+#### Sine wave
 
 ```
 for i in $(seq 500); do \
@@ -69,20 +71,22 @@ for i in $(seq 500); do \
 ```
 ![Sine Wave Plot](doc/sin.png)
 
-Total % memory usage:
+#### Memory usage (%)
 ```
 termplot --command 'free | awk "NR==2 { print ($3/$2) * 100 }"' \
   -t "Memory (% used)" --color light_magenta --line-style heavy-line
 ```
 ![Free Memory % Chart](doc/memory.png)
 
-% CPU usage of a "puma" process:
-```
-termplot --command 'ps au | grep puma | awk "NR==1{ print $3 }"' \
-  -t "Ruby CPU(%)" --color yellow --line-style dot -r10 -c 120
-```
-![CPU % Chart](doc/cpu.png)
+#### Real time stock ticker
 
+(Using [ticker.sh](https://github.com/pstadler/ticker.sh)) 😉:
+
+```
+termplot --command 'NO_COLOR=1 ticker.sh MSFT | awk "{ print $2 }"' \
+  --interval 10000 -t "MSFT" --color light_green
+```
+![MSFT ticker chart](doc/MSFT.png)
 
 ## Notes
 
