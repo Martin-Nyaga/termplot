@@ -71,14 +71,14 @@ for i in $(seq 500); do \
 
 Total % memory usage:
 ```
-termplot --command "free | awk 'NR==2 { print ($3/$2) * 100 }'" \
+termplot --command 'free | awk "NR==2 { print ($3/$2) * 100 }"' \
   -t "Memory (% used)" --color light_magenta --line-style heavy-line
 ```
 ![Free Memory % Chart](doc/memory.png)
 
 % CPU usage of a "puma" process:
 ```
-termplot --command "ps au | grep puma | awk 'NR==1{ print $3 }'" \
+termplot --command 'ps au | grep puma | awk "NR==1{ print $3 }"' \
   -t "Ruby CPU(%)" --color yellow --line-style dot -r10 -c 120
 ```
 ![CPU % Chart](doc/cpu.png)
@@ -107,7 +107,7 @@ ruby.
 Now with termplot, it's as easy as:
 
 ```
-termplot --command "ss -s | head -n1 | cut -d' ' -f2" --interval 500 -t "TCP Connections"
+termplot --command 'ss -s | head -n1 | cut -d" " -f2' --interval 500 -t "TCP Connections"
 ```
 
 ![TCP Connections](doc/tcp.png)

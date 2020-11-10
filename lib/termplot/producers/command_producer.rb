@@ -2,8 +2,9 @@ module Termplot
   module Producers
     class CommandProducer < BaseProducer
       def run
+        command = sanitize_command("/bin/bash -c '#{options.command}'")
         loop do
-          n = `/bin/bash -c '#{options.command}'`.chomp
+          n = `#{command}`
           # TODO: Error handling...
 
           if numeric?(n)
@@ -15,6 +16,11 @@ module Termplot
           sleep(options.interval / 1000.0)
         end
       end
+
+      private
+        def sanitize_command(command)
+          command.gsub(/\$/, '\\$')
+        end
     end
   end
 end
