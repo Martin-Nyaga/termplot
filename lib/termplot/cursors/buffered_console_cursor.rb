@@ -50,7 +50,7 @@ module Termplot
       end
 
       def flush
-        print buffer.join
+        buffer.join
       end
 
       def position=()

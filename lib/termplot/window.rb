@@ -35,6 +35,7 @@ module Termplot
       size.times { write CharacterMap::DEFAULT[:empty] }
     end
 
+    # Flush rendered window to a string
     def flush
       console_cursor.clear_buffer
       console_cursor.reset_position
@@ -47,15 +48,15 @@ module Termplot
       console_cursor.flush
     end
 
-    def flush_debug(str = "Window")
-      padding = "-" * 10
-      puts "\n#{padding} #{str} #{padding}\n"
+    # Flush to 2d array rather than string
+    def flush_debug
+      debug_arr = []
       buffer.each_slice(cols).with_index do |line, y|
         render_line = line.each_with_index.map do |c, x|
           y * cols + x == cursor.position ? "𝥺" : c
         end
-        print render_line
-        puts
+        debug_arr << render_line
+        debug_arr << "\n"
       end
     end
 

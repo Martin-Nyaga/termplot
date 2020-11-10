@@ -1,24 +1,30 @@
-require "termplot/series"
-require "termplot/renderer"
+require "termplot/time_series_widget"
+# require "termplot/renderer"
 require "termplot/shell"
 require "termplot/producers"
 
 module Termplot
   class Consumer
-    attr_reader :options, :series, :renderer
+    attr_reader :options, :widget, :renderer
 
     def initialize(options)
       @options = options
-      @renderer = Renderer.new(
-        cols: options.cols,
-        rows: options.rows,
-        debug: options.debug
-      )
-      @series = Series.new(
+      # @renderer = Renderer.new(
+      #   cols: options.cols,
+      #   rows: options.rows,
+      #   debug: options.debug
+      # )
+      @widget = TimeSeriesWidget.new(
         title: options.title,
-        max_data_points: renderer.inner_width,
         line_style: options.line_style,
         color: options.color,
+        cols: options.cols,
+        rows: options.rows,
+        window: Window.new(
+          cols: options.cols,
+          rows: options.rows
+        ),
+        debug: options.debug
       )
     end
 
@@ -38,11 +44,11 @@ module Termplot
             Thread.stop
           else
             num_samples.times do
-              series.add_point(queue.shift)
+              widget << queue.shift
             end
+            widget.render
 
-            renderer.render(series)
-            series.max_data_points = renderer.inner_width
+            # renderer.render(series)
           end
         end
       end
