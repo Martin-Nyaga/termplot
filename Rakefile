@@ -10,7 +10,7 @@ task :sin_test do
     do
       echo $i | awk '{ print sin($0/10)* 10; fflush("/dev/stdout") }';
       sleep 0.1;
-    done | ruby -Ilib bin/termplot -- -t 'sin(x)'
+    done | ruby -Ilib bin/termplot -t 'sin(x)'
   CMD
   exec cmd
 end

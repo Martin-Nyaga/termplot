@@ -58,6 +58,7 @@ module Termplot
         debug_arr << render_line
         debug_arr << "\n"
       end
+      debug_arr
     end
 
     # TODO: Refine later and include errors properly in the window
@@ -65,6 +66,24 @@ module Termplot
       print errors.join(Termplot::ControlChars::NEWLINE)
       print Termplot::ControlChars::NEWLINE
       errors.length.times { print Termplot::ControlChars::UP }
+    end
+
+    def blit(other, start_row, start_col)
+      cursor.position = start_row * cols + start_col
+
+      other.each_row do |row|
+        row.each do |char|
+          write(char)
+        end
+        cursor.down unless cursor.beginning_of_line?
+        cursor.col = start_col
+      end
+    end
+
+    def each_row
+      buffer.each_slice(cols) do |row|
+        yield row
+      end
     end
   end
 end

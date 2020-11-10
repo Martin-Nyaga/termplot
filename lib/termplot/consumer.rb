@@ -1,5 +1,5 @@
 require "termplot/time_series_widget"
-# require "termplot/renderer"
+require "termplot/renderer"
 require "termplot/shell"
 require "termplot/producers"
 
@@ -9,24 +9,25 @@ module Termplot
 
     def initialize(options)
       @options = options
-      # @renderer = Renderer.new(
-      #   cols: options.cols,
-      #   rows: options.rows,
-      #   debug: options.debug
-      # )
       @widget = TimeSeriesWidget.new(
         title: options.title,
         line_style: options.line_style,
         color: options.color,
         cols: options.cols,
         rows: options.rows,
-        window: Window.new(
-          cols: options.cols,
-          rows: options.rows
-        ),
+        debug: options.debug
+      )
+      @renderer = Renderer.new(
+        cols: options.cols,
+        rows: options.rows * 2,
+        widget_configs: [
+          WidgetConfig.new(0, 0, widget),
+          WidgetConfig.new(options.rows, 0, widget)
+        ],
         debug: options.debug
       )
     end
+    WidgetConfig = Struct.new(:row, :col, :widget)
 
     def run
       Shell.init
@@ -46,9 +47,7 @@ module Termplot
             num_samples.times do
               widget << queue.shift
             end
-            widget.render
-
-            # renderer.render(series)
+            renderer.render
           end
         end
       end

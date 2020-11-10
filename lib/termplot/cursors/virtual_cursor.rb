@@ -64,6 +64,10 @@ module Termplot
         @position = position - (position % window.cols)
       end
 
+      def beginning_of_line?
+        @position % window.cols == 0
+      end
+
       def position=(n)
         @position = n
       end

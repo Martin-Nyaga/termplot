@@ -7,23 +7,27 @@ module Termplot
     DEFAULT_COLOR = "red"
     DEFAULT_LINE_STYLE = "line"
 
+    attr_reader :window, :errors
+
     def initialize(
       title: "Series",
       color: DEFAULT_COLOR,
       line_style: DEFAULT_LINE_STYLE,
-      window:,
       cols:,
       rows:,
       debug:
     )
       # Window specific
-      @window = window
       # Default border size, right border allocation will change dynamically as
       # data comes in to account for the length of the numbers to be printed in
       # the axis ticks
       @border_size = default_border_size
       @cols = cols > min_cols ? cols : min_cols
       @rows = rows > min_rows ? rows : min_rows
+      @window =  Window.new(
+        cols: @cols,
+        rows: @rows
+      )
       @debug = debug
       @errors = []
 
@@ -58,8 +62,25 @@ module Termplot
     end
 
     def render
-      window.clear
+      print render_to_string
+
+      if errors.any?
+        window.print_errors(errors)
+      end
+    end
+
+    def render_to_string
+      render_to_window
+
+      # Flush window to string
+      @debug ?
+        window.flush_debug :
+        window.flush
+    end
+
+    def render_to_window
       errors.clear
+      window.clear
 
       # Calculate width of right hand axis
       calculate_axis_size
@@ -80,21 +101,11 @@ module Termplot
       # Draw axis
       ticks = build_ticks(points)
       render_axis(ticks)
-
-      # Flush window to screen
-      rendered_string = @debug ?
-        window.flush_debug :
-        window.flush
-      print rendered_string
-
-      if errors.any?
-        window.print_errors(errors)
-      end
     end
 
     private
     attr_reader :title, :data, :min, :max, :range, :color, :line_style, :rows, :cols,
-                :window, :border_size, :errors, :decimals, :tick_spacing
+                :border_size, :decimals, :tick_spacing
 
     def inner_width
       cols -  border_size.left - border_size.right
