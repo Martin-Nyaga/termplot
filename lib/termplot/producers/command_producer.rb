@@ -7,10 +7,7 @@ module Termplot
           n = `#{command}`
           # TODO: Error handling...
 
-          if numeric?(n)
-            queue << n.to_f
-            consumer&.run
-          end
+          produce(n)
 
           # Interval is in ms
           sleep(options.interval / 1000.0)
@@ -19,7 +16,7 @@ module Termplot
 
       private
         def sanitize_command(command)
-          command.gsub(/\$/, '\\$')
+          command.gsub(/(".)\$(".)/, '\\$')
         end
     end
   end

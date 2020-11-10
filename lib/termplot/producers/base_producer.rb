@@ -26,6 +26,13 @@ module Termplot
       private
       attr_reader :queue, :consumer, :options
 
+      def produce(value)
+        if numeric?(value)
+          queue << value.to_f
+          consumer&.run
+        end
+      end
+
       FLOAT_REGEXP = /^[-+]?[0-9]*\.?[0-9]+$/
       def numeric?(n)
         n =~ FLOAT_REGEXP

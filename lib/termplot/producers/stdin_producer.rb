@@ -3,10 +3,7 @@ module Termplot
     class StdinProducer < BaseProducer
       def run
         while n = STDIN.gets&.chomp do
-          if numeric?(n)
-            queue << n.to_f
-            consumer&.run
-          end
+          produce(n)
         end
       end
     end
