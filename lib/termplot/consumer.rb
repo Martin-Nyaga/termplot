@@ -1,3 +1,5 @@
+require "forwardable"
+
 require "termplot/time_series_widget"
 require "termplot/renderer"
 require "termplot/shell"
@@ -20,14 +22,12 @@ module Termplot
       @renderer = Renderer.new(
         cols: options.cols,
         rows: options.rows * 2,
-        widget_configs: [
-          WidgetConfig.new(0, 0, widget),
-          WidgetConfig.new(options.rows, 0, widget)
+        widgets: [
+          PositionedWidget.new(row: 0, col: 0, widget: widget),
         ],
         debug: options.debug
       )
     end
-    WidgetConfig = Struct.new(:row, :col, :widget)
 
     def run
       Shell.init
@@ -68,6 +68,11 @@ module Termplot
     end
 
     private
+
+    PositionedWidget = Struct.new(:row, :col, :widget, keyword_init: true) do
+      extend Forwardable
+      def_delegators :widget, :window, :errors, :render_to_window
+    end
 
     def build_producer(queue)
       producer_class = {

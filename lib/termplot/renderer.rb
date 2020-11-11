@@ -6,48 +6,32 @@ require "termplot/colors"
 
 module Termplot
   class Renderer
-    def initialize(cols: 80, rows: 20, debug: false, widget_configs:)
+    include Renderable
+
+    def initialize(cols: 80, rows: 20, debug: false, widgets:)
       @window = Window.new(cols: cols, rows: rows)
-      @widget_configs = widget_configs
+      @widgets = widgets
       @debug = debug
       @errors = []
     end
 
-    def render
+    def render_to_window
       window.clear
       errors.clear
 
       position = [0, 0]
-      widget_configs.each do |widget_config|
-        widget_config.widget.render_to_window
+      widgets.each do |widget|
+        widget.render_to_window
         window.blit(
-          widget_config.widget.window,
-          widget_config.row,
-          widget_config.col
+          widget.window,
+          widget.row,
+          widget.col
         )
-        @errors.concat(widget_config.widget.errors)
-      end
-
-      # Flush window to screen
-      if debug?
-        window.flush_debug.each do |row|
-          print row
-        end
-      else
-        rendered_string = window.flush
-        print rendered_string
-      end
-
-      if errors.any?
-        window.print_errors(errors)
+        @errors.concat(widget.errors)
       end
     end
 
     private
-    attr_reader :cols, :rows, :widget_configs, :window, :errors
-
-    def debug?
-      @debug
-    end
+    attr_reader :cols, :rows, :widgets, :window, :errors
   end
 end

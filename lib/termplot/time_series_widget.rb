@@ -2,8 +2,12 @@ require "termplot/window"
 require "termplot/character_map"
 require "termplot/colors"
 
+require "termplot/renderable"
+
 module Termplot
   class TimeSeriesWidget
+    include Renderable
+
     DEFAULT_COLOR = "red"
     DEFAULT_LINE_STYLE = "line"
 
@@ -42,40 +46,12 @@ module Termplot
       @tick_spacing = 3
 
       # Data
-      @data = []
-      @min = 0
-      @max = 0
-      @range = 0
+      @dataset = Dataset.new(inner_width)
     end
 
     def <<(point)
-      @data.push(point)
-
-      while @data.length > inner_width do
-        @data.shift
-      end
-
-      @min = data.min
-      @max = data.max
-      @range = (max - min).abs
-      @range = 1 if range.zero?
-    end
-
-    def render
-      print render_to_string
-
-      if errors.any?
-        window.print_errors(errors)
-      end
-    end
-
-    def render_to_string
-      render_to_window
-
-      # Flush window to string
-      @debug ?
-        window.flush_debug :
-        window.flush
+      dataset << point
+      dataset.set_capacity(inner_width)
     end
 
     def render_to_window
@@ -104,7 +80,7 @@ module Termplot
     end
 
     private
-    attr_reader :title, :data, :min, :max, :range, :color, :line_style, :rows, :cols,
+    attr_reader :title, :dataset, :range, :color, :line_style, :rows, :cols,
                 :border_size, :decimals, :tick_spacing
 
     def inner_width
@@ -115,9 +91,8 @@ module Termplot
     # @decimals decimal places, + 2 for some extra buffer + 1 for the border
     # itself.
     def calculate_axis_size
-      border_right = data.map { |n| n.round(decimals).to_s.length }.max
+      border_right = dataset.map { |n| n.round(decimals).to_s.length }.max
       border_right += 3
-
       # Clamp border_right at cols - 3 to prevent the renderer from crashing
       # with very large numbers
       if border_right > cols - 3
@@ -153,10 +128,10 @@ module Termplot
 
     Point = Struct.new(:x, :y, :value)
     def build_points
-      return [] if data.empty?
-      data.last(inner_width).map.with_index do |p, x|
+      return [] if dataset.empty?
+      dataset.map.with_index do |p, x|
         # Map from series Y range to inner height
-        y = map_value(p, [min, max], [0, inner_height - 1])
+        y = map_value(p, [dataset.min, dataset.max], [0, inner_height - 1])
 
         # Invert Y value since pixel Y is inverse of cartesian Y
         y = border_size.top - 1 + inner_height - y.round
@@ -220,7 +195,6 @@ module Termplot
       max_point = points.max_by(&:value)
       min_point = points.min_by(&:value)
       point_y_range = points.max_by(&:y).y - points.min_by(&:y).y
-      point_value_range = max_point.value - min_point.value
       ticks = []
       ticks.push Tick.new(max_point.y, format_label(max_point.value))
 
@@ -231,7 +205,7 @@ module Termplot
         num_ticks = (point_y_range - 2) / tick_spacing
         num_ticks.times do |i|
           tick_y = max_point.y + (i + 1) * tick_spacing
-          value = max_point.value - point_value_range * ((i + 1) * tick_spacing) / point_y_range
+          value = max_point.value - dataset.range * ((i + 1) * tick_spacing) / point_y_range
           ticks.push Tick.new(tick_y, format_label(value))
         end
       end
@@ -316,6 +290,50 @@ module Termplot
 
     def colored(text)
       Colors.send(color, text)
+    end
+
+    class Dataset
+      include Enumerable
+
+      attr_reader :capacity, :min, :max, :range, :data
+
+      def initialize(capacity)
+        @data = []
+        @min = 0
+        @max = 0
+        @range = 0
+        @capacity = capacity
+      end
+
+      def each(&block)
+        data.each(&block)
+      end
+
+      def << (point)
+        @data.push(point)
+
+        discard_excess
+
+        @min = data.min
+        @max = data.max
+        @range = (max - min).abs
+        @range = 1 if range.zero?
+      end
+
+      def set_capacity(capacity)
+        @capacity = capacity
+        discard_excess
+      end
+
+      def empty?
+        @data.empty?
+      end
+
+      private
+      def discard_excess
+        excess = [0, @data.length - capacity].max
+        @data.shift(excess)
+      end
     end
   end
 end
