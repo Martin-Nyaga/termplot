@@ -3,6 +3,7 @@
 require "termplot/window"
 require "termplot/character_map"
 require "termplot/colors"
+require "termplot/renderable"
 
 module Termplot
   class Renderer

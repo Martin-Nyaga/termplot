@@ -3,21 +3,24 @@
 require "optparse"
 require "termplot/character_map"
 require "termplot/colors"
+require "termplot/consumers"
 
 module Termplot
   class Options
     attr_reader :rows,
-      :cols,
-      :title,
-      :line_style,
-      :color,
-      :debug,
-      :command,
-      :interval
+                :cols,
+                :file,
+                :title,
+                :line_style,
+                :color,
+                :debug,
+                :command,
+                :interval
 
     def initialize
       @rows       = 19
       @cols       = 80
+      @fie        = nil
       @title      = "Series"
       @line_style = "line"
       @color      = "red"
@@ -26,8 +29,24 @@ module Termplot
       @interval   = 1000
     end
 
+    # 3 modes supported:
+    # - Read from stdin and render a single chart (default)
+    # - Run a single command at an interval and render a single chart
+    # - Read configuration from a file, run multiple commands at an interval and
+    #   render a dashboard
     def mode
-      @command.nil? ? :stdin : :command
+      return :file    unless @file.nil?
+      return :command unless @command.nil?
+      :stdin
+    end
+
+    CONSUMERS = {
+      file:    "Termplot::Consumers::MultiSourceConsumer",
+      command: "Termplot::Consumers::StdinConsumer",
+      stdin:   "Termplot::Consumers::StdinConsumer",
+    }
+    def run_consumer
+      Object.const_get(CONSUMERS[mode]).new(self).run
     end
 
     def parse_options!
@@ -40,11 +59,16 @@ module Termplot
 
         parse_rows(opts)
         parse_cols(opts)
+
+        parse_command(opts)
+        parse_interval(opts)
+
+        parse_file(opts)
+
         parse_title(opts)
         parse_line_style(opts)
         parse_color(opts)
-        parse_command(opts)
-        parse_interval(opts)
+
 
         opts.on("-h", "--help", "Display this help message") do
           puts opts
@@ -68,6 +92,13 @@ module Termplot
       opts.on("-c COLS", "--cols COLS",
               "Number of cols in the chart window (default: #{@cols})") do |v|
         @cols = v.to_i
+      end
+    end
+
+    def parse_file(opts)
+      opts.on("-f FILE", "--file FILE",
+              "Read a dashboard configuration from a file") do |v|
+        @file = v
       end
     end
 
