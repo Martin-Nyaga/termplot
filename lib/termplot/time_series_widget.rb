@@ -148,6 +148,8 @@ module Termplot
         if line_style[:extended]
           prev_point = ((i - 1) >= 0) ? points[i-1] : nil
           render_connected_line(prev_point, point)
+        elsif line_style[:filled]
+          render_filled_point(point)
         else
           window.write(colored(line_style[:point]))
         end
@@ -186,6 +188,17 @@ module Termplot
 
         window.write(colored(line_style[:top_right]))
       end
+    end
+
+    def render_filled_point(point)
+      diff = (inner_height + border_size.bottom) - point.y
+      diff.times { window.cursor.down }
+      diff.times do
+        window.write(Colors.send("#{color}_bg", colored(line_style[:point])))
+        window.cursor.up
+        window.cursor.back
+      end
+      window.write(colored(line_style[:point]))
     end
 
 

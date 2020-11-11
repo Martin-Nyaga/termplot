@@ -21,7 +21,7 @@ module Termplot
       )
       @renderer = Renderer.new(
         cols: options.cols,
-        rows: options.rows * 2,
+        rows: options.rows,
         widgets: [
           PositionedWidget.new(row: 0, col: 0, widget: widget),
         ],
@@ -62,9 +62,11 @@ module Termplot
 
       # As soon as producer continues, and we first give the consumer a chance
       # to finish rendering the queue, then close the queue.
-      consumer.run
+      while !queue.empty? do
+        consumer.run
+      end
       producer.close
-      consumer.join
+      consumer.join unless consumer.stop?
     end
 
     private

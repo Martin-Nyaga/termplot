@@ -35,6 +35,9 @@ module Termplot
         define_method(color) do |str|
           escape_color(color) + str + escape_mode(:default)
         end
+        define_method("#{color}_bg") do |str|
+          escape_bg_color(color) + str + escape_mode(:default)
+        end
       end
 
       def fetch(color, default)
@@ -45,6 +48,10 @@ module Termplot
 
       def escape_color(color)
         "\e[#{COLORS[color] + 30}m"
+      end
+
+      def escape_bg_color(color)
+        "\e[#{COLORS[color] + 40}m"
       end
 
       def escape_mode(mode)

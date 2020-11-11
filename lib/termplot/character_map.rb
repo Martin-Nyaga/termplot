@@ -12,7 +12,8 @@ module Termplot
       top_left:   "┌",
       bot_right:  "┘",
       tick_right: "┤",
-      extended:   true
+      extended:   true,
+      filled:     false
     }
     DEFAULT = LINE
 
@@ -32,7 +33,8 @@ module Termplot
     BASIC = {
       empty:      " ",
       point:      "•",
-      extended:   false
+      extended:   false,
+      filled:     false
     }
     DOTS = BASIC
 
@@ -44,12 +46,19 @@ module Termplot
       point: "*"
     )
 
+    BAR = LINE.merge(
+      point: "▄",
+      extended: false,
+      filled: true
+    )
+
     LINE_STYLES = {
       "line"       => LINE,
       "heavy-line" => HEAVY_LINE,
       "dot"        => DOTS,
       "star"       => STAR,
-      "x"          => X
+      "x"          => X,
+      "bar"        => BAR,
     }
   end
 end
