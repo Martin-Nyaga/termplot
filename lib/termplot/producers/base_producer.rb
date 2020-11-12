@@ -1,35 +1,25 @@
 module Termplot
   module Producers
     class BaseProducer
-      def initialize(queue, options)
+      def initialize(options)
         @options = options
-        @queue = queue
-        @consumer = nil
+        @on_message_handler = -> {}
       end
 
-      def register_consumer(consumer)
-        @consumer = consumer
+      def on_message(&block)
+        @on_message_handler = block
       end
 
-      def shift
-        queue.shift
-      end
-
-      def closed?
-        queue.closed?
-      end
-
-      def close
-        queue.close
+      def run
+        raise "Must be implemented"
       end
 
       private
-      attr_reader :queue, :consumer, :options
+      attr_reader :options, :on_message_handler
 
       def produce(value)
         if numeric?(value)
-          queue << value.to_f
-          consumer&.run
+          on_message_handler.call(value.to_f)
         end
       end
 

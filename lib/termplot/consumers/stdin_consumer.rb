@@ -32,22 +32,24 @@ module Termplot
 
       def run
         Shell.init
+
         queue = Queue.new
 
+        # The broker pool will broker messages from one or more queues and ensure
+        # they are delivered to one or more destinations (in this case, a widget)
+        broker_pool = BrokerPool.new
+        broker_pool.broker_messages(queue, widget)
+
         # Consumer thread will process and render any available input in the
-        # queue. If samples are available faster than it can render, multiple
-        # samples will be shifted from the queue so they can be rendered at once.
-        # If no samples are available but the queue is open, it will sleep until
-        # woken to render new input.
-        consumer = Thread.new do
-          while !queue.closed?
-            num_samples = queue.size
-            if num_samples == 0
+        # broker_pool's queues. If no samples are available but some queue is
+        # still open, the thread will sleep until woken to render new input.
+        consumer_thread = Thread.new do
+          while !broker_pool.closed?
+            num_samples = broker_pool.pending_message_count
+            if num_samples.zero?
               Thread.stop
             else
-              num_samples.times do
-                widget << queue.shift
-              end
+              broker_pool.flush_messages
               renderer.render
             end
           end
@@ -55,19 +57,22 @@ module Termplot
 
         # Producer will run in the main thread and will block while producing
         # samples from some source (which depends on the type of producer).
-        # Samples will be added to the queue as they are available, and the
-        # consumer will be woken to check the queue
-        producer = build_producer(queue)
-        producer.register_consumer(consumer)
+        # Each value is added to the queue and the consumer will be woken to
+        # check the queue
+        producer = build_producer
+        producer.on_message do |value|
+          queue << value
+          consumer_thread.run
+        end
         producer.run
 
         # As soon as producer continues, and we first give the consumer a chance
         # to finish rendering the queue, then close the queue.
-        while !queue.empty? do
-          consumer.run
+        while !broker_pool.empty? do
+          consumer_thread.run
         end
-        producer.close
-        consumer.join unless consumer.stop?
+        queue.close
+        consumer_thread.join unless consumer_thread.stop?
       end
 
       private
@@ -77,13 +82,61 @@ module Termplot
         def_delegators :widget, :window, :errors, :render_to_window
       end
 
-      def build_producer(queue)
+      def build_producer
         producer_class = {
           command: "Termplot::Producers::CommandProducer",
           stdin: "Termplot::Producers::StdinProducer"
         }.fetch(options.mode)
-        Object.const_get(producer_class).new(queue, options)
+        Object.const_get(producer_class).new(options)
       end
+
+      class BrokerPool
+        def initialize
+          @brokers = []
+        end
+
+        def broker_messages(queue, reader)
+          @brokers.push(Broker.new(queue, reader))
+        end
+
+        def closed?
+          brokers.all?(:closed?)
+        end
+
+        def flush_messages
+          brokers.each(&:flush_queue)
+        end
+
+        def pending_message_count
+          brokers.inject(0) do |sum, broker|
+            sum + broker.pending_message_count
+          end
+        end
+
+        def empty?
+          pending_message_count == 0
+        end
+
+        private
+        attr_reader :brokers
+
+        Broker = Struct.new(:queue, :reader) do
+          extend Forwardable
+          def_delegators :queue, :closed
+
+          def flush_queue
+            num_samples = queue.size
+            num_samples.times do
+              reader << queue.shift
+            end
+          end
+
+          def pending_message_count
+            queue.size
+          end
+        end
+      end
+
     end
   end
 end
