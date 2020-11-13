@@ -41,15 +41,6 @@ module Termplot
       :stdin
     end
 
-    CONSUMERS = {
-      file:    "Termplot::Consumers::MultiSourceConsumer",
-      command: "Termplot::Consumers::StdinConsumer",
-      stdin:   "Termplot::Consumers::StdinConsumer",
-    }
-    def run_consumer
-      Object.const_get(CONSUMERS[mode]).new(self).run
-    end
-
     def parse_options!
       # Debug option is parsed manually to prevent it from showing up in the
       # options help

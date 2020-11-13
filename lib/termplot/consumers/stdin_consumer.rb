@@ -8,11 +8,14 @@ require "termplot/broker_pool"
 module Termplot
   module Consumers
     class StdinConsumer
-      attr_reader :options, :widget, :renderer
+      attr_reader :options
 
       def initialize(options)
         @options = options
-        @widget = Termplot::Widgets::TimeSeriesWidget.new(
+      end
+
+      def run
+        widget = Termplot::Widgets::TimeSeriesWidget.new(
           title: options.title,
           line_style: options.line_style,
           color: options.color,
@@ -20,7 +23,7 @@ module Termplot
           rows: options.rows,
           debug: options.debug
         )
-        @renderer = Renderer.new(
+        renderer = Renderer.new(
           cols: options.cols,
           rows: options.rows,
           widgets: [
@@ -28,9 +31,7 @@ module Termplot
           ],
           debug: options.debug
         )
-      end
 
-      def run
         queue = Queue.new
 
         # The broker pool will broker messages from one or more queues and ensure
