@@ -4,6 +4,7 @@ require "optparse"
 require "termplot/character_map"
 require "termplot/colors"
 require "termplot/consumers"
+require "termplot/producer_options"
 
 module Termplot
   class Options
@@ -77,6 +78,10 @@ module Termplot
 
       end.parse!
       self
+    end
+
+    def producer_options
+      ProducerOptions.new(command: command, interval: interval)
     end
 
     private

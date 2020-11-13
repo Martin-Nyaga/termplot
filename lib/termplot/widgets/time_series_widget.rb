@@ -20,7 +20,7 @@ module Termplot
         line_style: DEFAULT_LINE_STYLE,
         cols:,
         rows:,
-        debug:
+        debug: false
       )
         # Window specific
         # Default border size, right border allocation will change dynamically as
@@ -92,6 +92,7 @@ module Termplot
       # @decimals decimal places, + 2 for some extra buffer + 1 for the border
       # itself.
       def calculate_axis_size
+        return border_size if dataset.empty?
         border_right = dataset.map { |n| n.round(decimals).to_s.length }.max
         border_right += 3
         # Clamp border_right at cols - 3 to prevent the renderer from crashing
