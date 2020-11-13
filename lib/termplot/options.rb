@@ -3,7 +3,6 @@
 require "optparse"
 require "termplot/character_map"
 require "termplot/colors"
-require "termplot/consumers"
 require "termplot/producer_options"
 
 module Termplot

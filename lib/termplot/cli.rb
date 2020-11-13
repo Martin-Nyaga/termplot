@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require "termplot/options"
+require "termplot/consumers"
 
 module Termplot
   class CLI
