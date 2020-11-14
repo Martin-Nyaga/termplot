@@ -1,14 +1,18 @@
+cpu_command = "top -b -n 1 | awk -F',' 'NR==3{ split($4, arr, \" \"); print 100.0 - arr[1] }'"
+
 row do
   col do
     timeseries title: "CPU (%)",
       line_style: "bar",
       color: "green",
-      command: "top -b -n 1 | awk -F',' 'NR==3{ split($4, arr, \" \"); print 100.0 - arr[1] }'"
+      command: cpu_command
 
     timeseries title: "Memory Use (%)",
       line_style: "bar",
       color: "yellow",
       command: "free | awk 'NR==2 { print ($3/$2) * 100 }'"
+
+    statistics title: "CPU (%) Stats", command:  cpu_command
   end
 
   col do

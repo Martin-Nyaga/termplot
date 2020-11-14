@@ -8,7 +8,7 @@ module Termplot
       CURSOR_HIDE = "\e[?25l"
       CURSOR_SHOW = "\e[?25h"
       CLEAR_SCREEN = "\e[2J"
-      # TODO: Maybe clear?
+
       def init(clear: false)
         print CLEAR_SCREEN if clear
         # Disable echo on stdout tty, prevents printing chars if you type in
@@ -23,8 +23,9 @@ module Termplot
         Signal.trap("INT") { exit(0) }
       end
 
+      # Leave a 1 char buffer on the right/bottom
       def get_dimensions
-        `stty size`.scan(/\d+/).map(&:to_i)
+        `stty size`.scan(/\d+/).map { |d| d - 1 }
       end
 
       def reset

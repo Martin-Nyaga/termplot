@@ -85,6 +85,18 @@ module Termplot
         attrs = options.default_options.merge(attrs).slice(*timeseries_option_keys)
         children.push(TimeSeriesConfig.new(**attrs))
       end
+
+      def statistics(attrs)
+        stats_option_keys = [
+          :title,
+          :cols,
+          :rows,
+          :command,
+          :interval
+        ]
+        attrs = options.default_options.merge(attrs).slice(*stats_option_keys)
+        children.push(StatisticsConfig.new(**attrs))
+      end
     end
 
     class Row < Panel
@@ -144,7 +156,11 @@ module Termplot
       end
 
       def positioned_widget
-        raise "Must be implemented"
+        @positioned_widget ||= PositionedWidget.new(
+          row: row,
+          col: col,
+          widget: widget
+        )
       end
 
       def widget
@@ -157,11 +173,7 @@ module Termplot
     end
 
     class TimeSeriesConfig < WidgetConfig
-      attr_reader(
-        :title,
-        :color,
-        :line_style
-      )
+      attr_reader :title, :color, :line_style
 
       def initialize(
         rows: nil,
@@ -183,20 +195,39 @@ module Termplot
         @debug = debug
       end
 
-      def positioned_widget
-        @positioned_widget ||= PositionedWidget.new(
-          row: row,
-          col: col,
-          widget: widget
-        )
-      end
-
       def widget
         @widget ||= Termplot::Widgets::TimeSeriesWidget.new(
           # TODO: Collapse defaults somewhere
-          title: title || "Series",
-          line_style: line_style || "line",
-          color: color || "red",
+          title: title,
+          line_style: line_style,
+          color: color,
+          cols: cols,
+          rows: rows,
+          debug: debug
+        )
+      end
+    end
+
+    class StatisticsConfig < WidgetConfig
+      attr_reader :title
+      def initialize(
+        rows: nil,
+        cols: nil,
+        title: nil,
+        command: nil,
+        interval: nil,
+        debug: nil
+      )
+        @title = title
+
+        @command = command
+        @interval = interval
+        @debug = debug
+      end
+
+      def widget
+        @widget ||= Termplot::Widgets::StatisticsWidget.new(
+          title: title,
           cols: cols,
           rows: rows,
           debug: debug

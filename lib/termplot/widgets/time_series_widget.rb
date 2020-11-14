@@ -1,18 +1,13 @@
 require "termplot/window"
 require "termplot/character_map"
 require "termplot/colors"
-
 require "termplot/renderable"
 
 module Termplot
   module Widgets
-    class TimeSeriesWidget
-      include Renderable
-
+    class TimeSeriesWidget < BaseWidget
       DEFAULT_COLOR = "red"
       DEFAULT_LINE_STYLE = "line"
-
-      attr_reader :window, :errors
 
       def initialize(
         title: "Series",
@@ -47,7 +42,7 @@ module Termplot
         @tick_spacing = 3
 
         # Data
-        @dataset = Dataset.new(inner_width)
+        @dataset = Termplot::Widgets::Dataset.new(inner_width)
       end
 
       def <<(point)
@@ -102,7 +97,7 @@ module Termplot
           border_right = cols - 3
         end
 
-        @border_size = Border.new(2, border_right, 1, 1)
+        @border_size = Termplot::Widgets::Border.new(2, border_right, 1, 1)
       end
 
       def border_char_map
@@ -113,9 +108,8 @@ module Termplot
         rows - border_size.top - border_size.bottom
       end
 
-      Border = Struct.new(:top, :right, :bottom, :left)
       def default_border_size
-        Border.new(2, 4, 1, 1)
+        Termplot::Widgets::Border.new(2, 4, 1, 1)
       end
 
       # At minimum, 2 cols of inner_width for values
@@ -296,7 +290,7 @@ module Termplot
       end
 
       def format_label(num)
-        ("%.2f" % num.round(decimals))[0..label_chars - 1].ljust(label_chars, " ")
+        ("%.#{decimals}f" % num.round(decimals))[0..label_chars - 1].ljust(label_chars, " ")
       end
 
       def label_chars
@@ -305,50 +299,6 @@ module Termplot
 
       def colored(text)
         Colors.send(color, text)
-      end
-
-      class Dataset
-        include Enumerable
-
-        attr_reader :capacity, :min, :max, :range, :data
-
-        def initialize(capacity)
-          @data = []
-          @min = 0
-          @max = 0
-          @range = 0
-          @capacity = capacity
-        end
-
-        def each(&block)
-          data.each(&block)
-        end
-
-        def << (point)
-          @data.push(point)
-
-          discard_excess
-
-          @min = data.min
-          @max = data.max
-          @range = (max - min).abs
-          @range = 1 if range.zero?
-        end
-
-        def set_capacity(capacity)
-          @capacity = capacity
-          discard_excess
-        end
-
-        def empty?
-          @data.empty?
-        end
-
-        private
-        def discard_excess
-          excess = [0, @data.length - capacity].max
-          @data.shift(excess)
-        end
       end
     end
   end

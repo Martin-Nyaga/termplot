@@ -1,28 +1,33 @@
+require_relative "./lib/termplot/commands"
 require "bundler/gem_tasks"
+
+extend Termplot::Commands
+extend Termplot::StdinCommands
+
+SAMPLE_FILE = "./sample.rb"
+def termplot_binary
+  "ruby -Ilib bin/termplot"
+end
 
 namespace :test do
   task :bin do
     exec "ruby", "-Ilib", "bin/termplot", *ARGV[2..-1]
   end
 
-  task :sin do
-    cmd = <<-CMD
-      for i in $(seq 5000);
-      do
-        echo $i | awk '{ print sin($0/10)* 10; fflush("/dev/stdout") }';
-        sleep 0.1;
-      done | ruby -Ilib bin/termplot -t 'sin(x)'
-    CMD
-    exec cmd
-  end
-
-  task :command do
-    cmd = %( ruby -Ilib bin/termplot --command 'echo $RANDOM' --interval 900% )
-    exec cmd
-  end
-
   task :file do
-    cmd = %( ruby -Ilib bin/termplot -f sample.rb )
+    cmd = %( #{termplot_binary} -f #{SAMPLE_FILE} -r30 -c100)
     exec cmd 
+  end
+
+  namespace :timeseries do
+    task :sin do
+      cmd = "#{sin(500)} | #{termplot_binary} -t 'sin(x)'"
+      exec cmd
+    end
+
+    task :random do
+      cmd = %( #{termplot_binary} --command '#{random}' --interval 900% )
+      exec cmd
+    end
   end
 end

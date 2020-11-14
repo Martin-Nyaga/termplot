@@ -104,7 +104,7 @@ module Termplot
 
     def parse_full_screen(opts)
       opts.on("--full-screen", "Render to the full available terminal size") do |v|
-        @rows, @cols = Shell.get_dimensions.map { |d| d - 1 }
+        @rows, @cols = Shell.get_dimensions
         @full_screen = true
       end
     end
