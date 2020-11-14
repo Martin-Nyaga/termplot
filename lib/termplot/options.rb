@@ -4,11 +4,13 @@ require "optparse"
 require "termplot/character_map"
 require "termplot/colors"
 require "termplot/producer_options"
+require "termplot/shell"
 
 module Termplot
   class Options
     attr_reader :rows,
                 :cols,
+                :full_screen,
                 :file,
                 :title,
                 :line_style,
@@ -38,6 +40,7 @@ module Termplot
       @default_options ||= {
         rows: 19,
         cols: 80,
+        full_screen: false,
         file: nil,
         title: "Series",
         line_style: "heavy-line",
@@ -58,6 +61,7 @@ module Termplot
 
         parse_rows(opts)
         parse_cols(opts)
+        parse_full_screen(opts)
 
         parse_command(opts)
         parse_interval(opts)
@@ -95,6 +99,13 @@ module Termplot
       opts.on("-c COLS", "--cols COLS",
               "Number of cols in the chart window (default: #{@cols})") do |v|
         @cols = v.to_i
+      end
+    end
+
+    def parse_full_screen(opts)
+      opts.on("--full-screen", "Render to the full available terminal size") do |v|
+        @rows, @cols = Shell.get_dimensions.map { |d| d - 1 }
+        @full_screen = true
       end
     end
 

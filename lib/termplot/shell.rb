@@ -7,7 +7,10 @@ module Termplot
 
       CURSOR_HIDE = "\e[?25l"
       CURSOR_SHOW = "\e[?25h"
-      def init
+      CLEAR_SCREEN = "\e[2J"
+      # TODO: Maybe clear?
+      def init(clear: false)
+        print CLEAR_SCREEN if clear
         # Disable echo on stdout tty, prevents printing chars if you type in
         # between rendering
         @termios_settings = Termios.tcgetattr($stdout)
@@ -18,6 +21,10 @@ module Termplot
         print CURSOR_HIDE
         at_exit { reset }
         Signal.trap("INT") { exit(0) }
+      end
+
+      def get_dimensions
+        `stty size`.scan(/\d+/).map(&:to_i)
       end
 
       def reset

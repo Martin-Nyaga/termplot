@@ -26,6 +26,7 @@ module Termplot
         register_producers_and_brokers
         broker_pool.on_message { renderer_thread.continue }
 
+        Shell.init(clear: options.full_screen)
         renderer_thread.start
 
         # Blocks main thread
@@ -59,7 +60,6 @@ module Termplot
 
         def start
           @thread = Thread.new do
-            Shell.init
             # Pause and wait to be woken for rendering
             pause
             while !broker_pool.closed?
