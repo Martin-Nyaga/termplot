@@ -13,7 +13,7 @@ module Termplot
 
     CONSUMERS = {
       file:    "Termplot::Consumers::MultiSourceConsumer",
-      command: "Termplot::Consumers::StdinConsumer",
+      command: "Termplot::Consumers::CommandConsumer",
       stdin:   "Termplot::Consumers::StdinConsumer",
     }
     def self.run_consumer(options)

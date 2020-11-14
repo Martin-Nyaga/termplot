@@ -18,26 +18,34 @@ module Termplot
                 :interval
 
     def initialize
-      @rows       = 19
-      @cols       = 80
-      @fie        = nil
-      @title      = "Series"
-      @line_style = "line"
-      @color      = "red"
-      @debug      = false
-      @command    = nil
-      @interval   = 1000
+      default_options.each do |(option, value)|
+        instance_variable_set("@#{option}", value)
+      end
     end
 
     # 3 modes supported:
     # - Read from stdin and render a single chart (default)
     # - Run a single command at an interval and render a single chart
     # - Read configuration from a file, run multiple commands at an interval and
-    #   render a dashboard
+    #   render multiple charts in a dashboard
     def mode
       return :file    unless @file.nil?
       return :command unless @command.nil?
       :stdin
+    end
+
+    def default_options
+      @default_options ||= {
+        rows: 19,
+        cols: 80,
+        file: nil,
+        title: "Series",
+        line_style: "heavy-line",
+        color: "green",
+        debug: false,
+        command: nil,
+        interval: 1000
+      }
     end
 
     def parse_options!

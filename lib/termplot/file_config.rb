@@ -5,18 +5,18 @@ require "termplot/widgets"
 
 module Termplot
   class FileConfig
-    attr_reader :rows, :cols, :widget_configs
+    attr_reader :options, :rows, :cols, :widget_configs
     def initialize(options)
+      @options = options
       @path = options.file
       @rows = options.rows
       @cols = options.cols
       @widget_configs = nil
     end
 
-    # TODO: Forward debug to widgets?
     def parse_config
       code = File.read(path)
-      top_level_panel = Col.new
+      top_level_panel = Col.new(options)
       top_level_panel.instance_eval(code)
 
       @widget_configs = resolve_widget_positions(top_level_panel)
@@ -36,12 +36,15 @@ module Termplot
     end
 
     class Panel
-      attr_accessor :rows,
-                    :cols,
-                    :start_row,
-                    :start_col
+      attr_accessor(
+        :rows,
+        :cols,
+        :start_row,
+        :start_col
+      )
 
-      def initialize(children = [])
+      def initialize(options, children = [])
+        @options = options
         @children = children
       end
 
@@ -54,22 +57,33 @@ module Termplot
       end
 
       private
-      attr_reader :children
+      attr_reader :options, :children
 
       def row(&block)
-        new_row = Row.new
+        new_row = Row.new(options)
         new_row.instance_eval(&block)
-        children.push new_row
+        children.push(new_row)
       end
 
       def col(&block)
-        new_col = Col.new
+        new_col = Col.new(options)
         new_col.instance_eval(&block)
-        children.push new_col
+        children.push(new_col)
       end
 
       def timeseries(attrs)
-        children.push TimeSeriesConfig.new(**attrs)
+        timeseries_option_keys = [
+          :title,
+          :color,
+          :line_style,
+          :cols,
+          :rows,
+          :debug,
+          :command,
+          :interval
+        ]
+        attrs = options.default_options.merge(attrs).slice(*timeseries_option_keys)
+        children.push(TimeSeriesConfig.new(**attrs))
       end
     end
 
@@ -78,6 +92,7 @@ module Termplot
         @rows = rows
         @cols = cols
         child_cols = cols / children.count
+
         children.each_with_index do |child, index|
           child.set_dimensions(
             rows,
@@ -94,6 +109,7 @@ module Termplot
         @rows = rows
         @cols = cols
         child_rows = rows / children.count
+
         children.each_with_index do |child, index|
           child.set_dimensions(
             child_rows,
@@ -106,16 +122,15 @@ module Termplot
     end
 
     class WidgetConfig
-      attr_reader :title,
-                  :color,
-                  :line_style,
-                  :command,
-                  :interval,
-                  :col,
-                  :row,
-                  :cols,
-                  :rows,
-                  :debug
+      attr_reader(
+        :command,
+        :interval,
+        :col,
+        :row,
+        :cols,
+        :rows,
+        :debug
+      )
 
       def set_dimensions(rows, cols, start_row, start_col)
         @rows = rows
@@ -142,19 +157,30 @@ module Termplot
     end
 
     class TimeSeriesConfig < WidgetConfig
+      attr_reader(
+        :title,
+        :color,
+        :line_style
+      )
+
       def initialize(
+        rows: nil,
+        cols: nil,
         title: nil,
         color: nil,
         line_style: nil,
         command: nil,
-        interval: 1000
+        interval: nil,
+        debug: nil
       )
+
         @title = title
         @color = color
         @line_style = line_style
 
         @command = command
         @interval = interval
+        @debug = debug
       end
 
       def positioned_widget
@@ -172,9 +198,8 @@ module Termplot
           line_style: line_style || "line",
           color: color || "red",
           cols: cols,
-          rows: rows
-          # TODO: Need to pass debug
-          # debug: options.debug
+          rows: rows,
+          debug: debug
         )
       end
     end
