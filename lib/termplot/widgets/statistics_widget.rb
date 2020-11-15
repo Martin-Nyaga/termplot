@@ -72,29 +72,34 @@ module Termplot
       end
 
       def render_statistics
+        titles, values = formatted_stats
+        title_width = titles.map(&:length).max
+        titles = titles.map { |t| t.ljust(title_width, " ") }
+        lines = titles.zip(values).map do |(title, value)|
+          "#{title} : #{value}"
+        end
+        line_width = lines.map(&:length).max
+        left_padding = [0, (inner_width - line_width) / 2].max
+
         window.cursor.down(border_size.top)
         window.cursor.beginning_of_line
-        window.cursor.forward(border_size.left)
+        window.cursor.forward(border_size.left + left_padding)
 
-        formatted_stats.each do |stat|
-          stat.chars.each do |char|
+        lines.each do |line|
+          line.chars.each do |char|
             window.write(char)
           end
 
           window.cursor.down
           window.cursor.beginning_of_line
-          window.cursor.forward(border_size.left)
+          window.cursor.forward(border_size.left + left_padding)
         end
       end
 
       def formatted_stats
-        [
-          "Count: #{format_number(dataset.count)}",
-          "Min: #{format_number(dataset.min)}",
-          "Max: #{format_number(dataset.max)}",
-          "Mean: #{format_number(dataset.mean)}",
-          "Stdev: #{format_number(dataset.standard_deviation)}"
-        ]
+        titles = %w[Samples Min Max Mean Stdev]
+        values = [:count, :min, :max, :mean, :standard_deviation].map { |stat| format_number(dataset.send(stat)) }
+        [titles, values]
       end
 
       def format_number(n)
