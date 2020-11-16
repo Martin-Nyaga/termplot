@@ -1,9 +1,9 @@
+# frozen_string_literal: true
+
 require "termplot/window"
 require "termplot/character_map"
 require "termplot/colors"
 require "termplot/renderable"
-require "termplot/widgets/border"
-require "termplot/widgets/dataset"
 require "termplot/renderers"
 
 module Termplot

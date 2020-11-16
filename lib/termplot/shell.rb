@@ -24,8 +24,9 @@ module Termplot
       end
 
       # Leave a 1 char buffer on the right/bottom
+      # TODO: Switch to ioctl TIOCGWINSZ
       def get_dimensions
-        `stty size`.scan(/\d+/).map { |d| d - 1 }
+        `stty size`.scan(/\d+/).map { |d| d.to_i - 1 }
       end
 
       def reset

@@ -197,7 +197,6 @@ module Termplot
 
       def widget
         @widget ||= Termplot::Widgets::TimeSeriesWidget.new(
-          # TODO: Collapse defaults somewhere
           title: title,
           line_style: line_style,
           color: color,

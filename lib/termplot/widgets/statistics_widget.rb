@@ -1,8 +1,9 @@
+# frozen_string_literal: true
+
 require "termplot/window"
 require "termplot/renderable"
 require "termplot/window"
 require "termplot/character_map"
-require "termplot/widgets/border"
 require "termplot/renderers"
 
 module Termplot
@@ -51,9 +52,10 @@ module Termplot
           row: 0,
           border_size: border_size,
           inner_width: inner_width,
-          align: :right,
+          align: :center,
           errors: errors
         )
+
         window.cursor.reset_position
 
         # Borders
@@ -62,12 +64,12 @@ module Termplot
           inner_width: inner_width,
           inner_height: inner_height
         )
+
         window.cursor.reset_position
       end
 
       private
       attr_reader :max_count, :decimals, :border_size
-
 
       def default_border_size
         Border.new(2, 1, 1, 1)
@@ -83,26 +85,36 @@ module Termplot
 
       def render_statistics
         titles, values = formatted_stats
-        title_width = titles.map(&:length).max
-        titles = titles.map { |t| t.ljust(title_width, " ") }
-        lines = titles.zip(values).map do |(title, value)|
-          "#{title} : #{value}"
-        end
-        line_width = lines.map(&:length).max
-        left_padding = [0, (inner_width - line_width) / 2].max
 
         window.cursor.down(border_size.top)
         window.cursor.beginning_of_line
-        window.cursor.forward(border_size.left + left_padding)
+        window.cursor.forward(border_size.left)
 
-        lines.each do |line|
-          line.chars.each do |char|
-            window.write(char)
-          end
+        title_color = "blue"
+        value_color = "green"
 
-          window.cursor.down
-          window.cursor.beginning_of_line
-          window.cursor.forward(border_size.left + left_padding)
+        justified_stats = titles.zip(values).map do |(title, value)|
+          field_size = [title.size, value.size].max
+          title = Colors.send(title_color, title.ljust(field_size, " "))
+          value = Colors.send(value_color, value.ljust(field_size, " "))
+          [title, value]
+        end
+
+        col_separator = " #{border_char_map[:vert_right]} "
+        stats_table = justified_stats.transpose.map { |row| row.join(col_separator) }
+
+        start_row = inner_height > 2 ? border_size.top - 1 + inner_height / 2 : border_size.top
+
+        stats_table.each_with_index do |row, index|
+          render_aligned_text(
+            window: window,
+            text: row,
+            row: start_row + index,
+            border_size: border_size,
+            inner_width: inner_width,
+            errors: errors,
+            align: :center
+          )
         end
       end
 

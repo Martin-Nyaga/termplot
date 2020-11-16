@@ -15,7 +15,7 @@ module Termplot
 
   module StdinCommands
     def sin(n)
-      <<-CMD
+      <<-CMD.chomp
         for i in $(seq #{n});
         do
           echo $i | awk '{ print sin($0/10)* 10; fflush("/dev/stdout") }';

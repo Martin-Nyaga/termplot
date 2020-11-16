@@ -39,7 +39,7 @@ module Termplot
     def default_options
       @default_options ||= {
         rows: 19,
-        cols: 80,
+        cols: 100,
         full_screen: false,
         file: nil,
         title: "Series",

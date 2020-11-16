@@ -32,6 +32,7 @@ module Termplot
         file
       end
 
+      # TODO: Proper sanitization, probably using Shellwords?
       def sanitize_command(command)
         # command.gsub('"', "'")
         command

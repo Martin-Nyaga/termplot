@@ -1,3 +1,8 @@
+# frozen_string_literal: true
+
+require "termplot/widgets/border"
+require "termplot/widgets/dataset"
+
 module Termplot
   module Widgets
     class BaseWidget
