@@ -2,10 +2,16 @@ require "termplot/window"
 require "termplot/character_map"
 require "termplot/colors"
 require "termplot/renderable"
+require "termplot/widgets/border"
+require "termplot/widgets/dataset"
+require "termplot/renderers"
 
 module Termplot
   module Widgets
     class TimeSeriesWidget < BaseWidget
+      include Termplot::Renderers::BorderRenderer
+      include Termplot::Renderers::TextRenderer
+
       DEFAULT_COLOR = "red"
       DEFAULT_LINE_STYLE = "line"
 
@@ -17,6 +23,7 @@ module Termplot
         rows:,
         debug: false
       )
+
         # Window specific
         # Default border size, right border allocation will change dynamically as
         # data comes in to account for the length of the numbers to be printed in
@@ -24,10 +31,11 @@ module Termplot
         @border_size = default_border_size
         @cols = cols > min_cols ? cols : min_cols
         @rows = rows > min_rows ? rows : min_rows
-        @window =  Window.new(
+        @window = Window.new(
           cols: @cols,
           rows: @rows
         )
+
         @debug = debug
         @errors = []
 
@@ -38,11 +46,12 @@ module Termplot
           line_style,
           Termplot::CharacterMap::LINE_STYLES[DEFAULT_LINE_STYLE]
         )
+
         @decimals = 2
         @tick_spacing = 3
 
         # Data
-        @dataset = Termplot::Widgets::Dataset.new(inner_width)
+        @dataset = Dataset.new(inner_width)
       end
 
       def <<(point)
@@ -63,11 +72,23 @@ module Termplot
         window.cursor.reset_position
 
         # Title bar
-        render_title
+        render_aligned_text(
+          window: window,
+          text: title_text,
+          row: 0,
+          border_size: border_size,
+          inner_width: inner_width,
+          errors: errors
+        )
         window.cursor.reset_position
 
         # Borders
-        render_borders
+        render_borders(
+          window: window,
+          inner_width: inner_width,
+          inner_height: inner_height
+        )
+
         window.cursor.reset_position
 
         # Draw axis
@@ -76,12 +97,18 @@ module Termplot
       end
 
       private
-      attr_reader :title, :dataset, :range, :color, :line_style, :rows, :cols,
-                  :border_size, :decimals, :tick_spacing
-
-      def inner_width
-        cols -  border_size.left - border_size.right
-      end
+      attr_reader(
+        :title,
+        :dataset,
+        :range,
+        :color,
+        :line_style,
+        :rows,
+        :cols,
+        :border_size,
+        :decimals,
+        :tick_spacing
+      )
 
       # Axis size = length of the longest point value , formatted as a string to
       # @decimals decimal places, + 2 for some extra buffer + 1 for the border
@@ -90,26 +117,23 @@ module Termplot
         return border_size if dataset.empty?
         border_right = dataset.map { |n| n.round(decimals).to_s.length }.max
         border_right += 3
+
         # Clamp border_right at cols - 3 to prevent the renderer from crashing
         # with very large numbers
         if border_right > cols - 3
-          errors.push(Colors.yellow "Warning: Axis tick values have been clipped, consider using more columns with -c")
+          errors.push(Colors.yellow("Warning: Axis tick values have been clipped, consider using more columns with -c"))
           border_right = cols - 3
         end
 
-        @border_size = Termplot::Widgets::Border.new(2, border_right, 1, 1)
+        @border_size = Border.new(2, border_right, 1, 1)
       end
 
       def border_char_map
         CharacterMap::DEFAULT
       end
 
-      def inner_height
-        rows - border_size.top - border_size.bottom
-      end
-
       def default_border_size
-        Termplot::Widgets::Border.new(2, 4, 1, 1)
+        Border.new(2, 4, 1, 1)
       end
 
       # At minimum, 2 cols of inner_width for values
@@ -125,6 +149,7 @@ module Termplot
       Point = Struct.new(:x, :y, :value)
       def build_points
         return [] if dataset.empty?
+
         dataset.map.with_index do |p, x|
           # Map from series Y range to inner height
           y = map_value(p, [dataset.min, dataset.max], [0, inner_height - 1])
@@ -141,8 +166,9 @@ module Termplot
         # Render points
         points.each_with_index do |point, i|
           window.cursor.position = point.y * cols + point.x
+
           if line_style[:extended]
-            prev_point = ((i - 1) >= 0) ? points[i-1] : nil
+            prev_point = ((i - 1) >= 0) ? points[i - 1] : nil
             render_connected_line(prev_point, point)
           elsif line_style[:filled]
             render_filled_point(point)
@@ -189,14 +215,15 @@ module Termplot
       def render_filled_point(point)
         diff = (inner_height + border_size.bottom) - point.y
         diff.times { window.cursor.down }
+
         diff.times do
           window.write(Colors.send("#{color}_bg", colored(line_style[:point])))
           window.cursor.up
           window.cursor.back
         end
+
         window.write(colored(line_style[:point]))
       end
-
 
       Tick = Struct.new(:y, :label)
       def build_ticks(points)
@@ -205,21 +232,21 @@ module Termplot
         min_point = points.min_by(&:value)
         point_y_range = points.max_by(&:y).y - points.min_by(&:y).y
         ticks = []
-        ticks.push Tick.new(max_point.y, format_label(max_point.value))
+        ticks.push(Tick.new(max_point.y, format_label(max_point.value)))
 
         # Distribute ticks between min and max, maintaining spacinig as much as
         # possible. tick_spacing is inclusive of the tick row itself.
-        if max_point.value != min_point.value &&
-               (point_y_range - 2) > tick_spacing
+        if max_point.value != min_point.value && (point_y_range - 2) > tick_spacing
           num_ticks = (point_y_range - 2) / tick_spacing
+
           num_ticks.times do |i|
             tick_y = max_point.y + (i + 1) * tick_spacing
             value = max_point.value - dataset.range * ((i + 1) * tick_spacing) / point_y_range
-            ticks.push Tick.new(tick_y, format_label(value))
+            ticks.push(Tick.new(tick_y, format_label(value)))
           end
         end
 
-        ticks.push Tick.new(min_point.y, format_label(min_point.value))
+        ticks.push(Tick.new(min_point.y, format_label(min_point.value)))
         ticks
       end
 
@@ -231,46 +258,28 @@ module Termplot
         ((val.to_f - from_range[0]) / orig_range) * new_range + to_range[0]
       end
 
-      def render_title
+      def title_text
+        colored(line_style[:point]) + " " + title
+      end
+
+      def render_title_old
         legend_marker = colored(line_style[:point])
         title_to_render = title
 
         legend_position = [1, (border_size.left + 1 + inner_width) / 2 - (title_to_render.length + 2) / 2].max
+
         if (title_to_render.length + 2 + legend_position) > cols
-          errors.push(Colors.yellow "Warning: Title has been clipped, consider using more rows with -r")
+          errors.push(Colors.yellow("Warning: Title has been clipped, consider using more rows with -r"))
           title_to_render = title_to_render[0..(cols - legend_position - 2)]
         end
 
         window.cursor.forward(legend_position)
         window.write(legend_marker)
         window.write(" ")
+
         title_to_render.chars.each do |char|
           window.write(char)
         end
-      end
-
-      def render_borders
-        window.cursor.down(border_size.top - 1)
-        window.cursor.forward(border_size.left - 1)
-        window.write(border_char_map[:top_left])
-        inner_width.times { window.write(border_char_map[:horz_top]) }
-        window.write(border_char_map[:top_right])
-        window.cursor.forward(border_size.right - 1)
-
-        inner_height.times do |y|
-          window.cursor.forward(border_size.left - 1)
-          window.write(border_char_map[:vert_right])
-          window.cursor.forward(inner_width)
-          window.write(border_char_map[:vert_left])
-          window.cursor.forward(border_size.right - 1)
-        end
-
-        # Bottom border
-        # Jump to bottom left corner
-        window.cursor.forward(border_size.left - 1)
-        window.write(border_char_map[:bot_left])
-        inner_width.times { window.write(border_char_map[:horz_top]) }
-        window.write(border_char_map[:bot_right])
       end
 
       def render_axis(ticks)
@@ -282,9 +291,11 @@ module Termplot
           window.cursor.row = tick.y
           window.cursor.back
           window.write(border_char_map[:tick_right])
+
           tick.label.chars.each do |c|
             window.write(c)
           end
+
           window.cursor.back(label_chars)
         end
       end
