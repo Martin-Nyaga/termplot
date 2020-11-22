@@ -9,27 +9,6 @@ require "termplot/renderers"
 module Termplot
   module Widgets
     class StatisticsWidget < BaseWidget
-      def initialize(title: "Statistics", cols:, rows:, debug: false)
-        @border_size = default_border_size
-        @cols = cols > min_cols ? cols : min_cols
-        @rows = rows > min_rows ? rows : min_rows
-        @window = Window.new(
-          cols: @cols,
-          rows: @rows
-        )
-        @bordered_window = BorderedWindow.new(window, default_border_size)
-        @debug = debug
-        @errors = []
-
-        @title = title
-
-        @decimals = 2
-
-        # TODO: Make max count configurable
-        @max_count = 500
-        @dataset = Dataset.new(max_count)
-      end
-
       def render_to_window
         errors.clear
         window.clear
@@ -51,18 +30,13 @@ module Termplot
 
         # Borders
         Termplot::Renderers::BorderRenderer.new(
-          window: window,
-          border_size: bordered_window.border_size,
-          inner_width: bordered_window.inner_width,
-          inner_height: bordered_window.inner_height
+          bordered_window: bordered_window
         ).render
 
         window.cursor.reset_position
       end
 
       private
-      attr_reader :max_count, :decimals, :border_size
-
       def default_border_size
         Border.new(2, 1, 1, 1)
       end

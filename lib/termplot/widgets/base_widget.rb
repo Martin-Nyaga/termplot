@@ -8,7 +8,40 @@ module Termplot
     class BaseWidget
       include Renderable
 
-      attr_reader :window, :errors
+      attr_reader(
+        :cols,
+        :rows,
+        :window,
+        :bordered_window,
+        :errors,
+        :title,
+        :decimals,
+        :dataset
+      )
+
+      def initialize(**opts)
+        @cols = opts[:cols] >= min_cols ? opts[:cols] : min_cols
+        @rows = opts[:rows] >= min_rows ? opts[:rows] : min_rows
+        @window = Window.new(
+          cols: @cols,
+          rows: @rows
+        )
+
+        @bordered_window = BorderedWindow.new(window, default_border_size)
+        @debug = opts[:debug]
+        @errors = []
+
+        @title = opts[:title]
+        @decimals = 2
+
+        @dataset = Dataset.new(max_count)
+
+        post_initialize(opts)
+      end
+
+      def post_initialize(opts)
+        # Implemented by subclasses
+      end
 
       def <<(point)
         dataset << point
@@ -20,14 +53,9 @@ module Termplot
       end
 
       private
-      attr_reader(
-        :cols,
-        :rows,
-        :dataset,
-        :title,
-        :max_count,
-        :bordered_window
-      )
+      def max_count
+        10_000
+      end
 
       BorderedWindow = Struct.new(:window, :border_size) do
         def inner_width

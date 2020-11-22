@@ -11,35 +11,10 @@ module Termplot
   module Widgets
     class HistogramWidget < BaseWidget
       DEFAULT_COLOR = "green"
+      attr_reader :color
 
-      def initialize(
-        title: "Histogram",
-        cols:,
-        rows:,
-        color: DEFAULT_COLOR,
-        debug: false
-      )
-
-        @cols = cols > min_cols ? cols : min_cols
-        @rows = rows > min_rows ? rows : min_rows
-        @window = Window.new(
-          cols: @cols,
-          rows: @rows
-        )
-
-        @bordered_window = BorderedWindow.new(window, default_border_size)
-        @border_size = bordered_window.border_size
-        @color = color
-
-        @debug = debug
-        @errors = []
-
-        @title = bin_char + " " + title
-
-        # TODO: Make max count configurable
-        @max_count = 10_000
-        @decimals = 2
-        @dataset = Dataset.new(max_count)
+      def post_initialize(opts)
+        @color = opts[:color] || DEFAULT_COLOR
       end
 
       def render_to_window
@@ -56,7 +31,7 @@ module Termplot
         # Title bar
         Termplot::Renderers::TextRenderer.new(
           bordered_window: bordered_window,
-          text: title,
+          text: title_text,
           row: 0,
           errors: errors
         ).render
@@ -65,10 +40,7 @@ module Termplot
 
         # Borders
         Termplot::Renderers::BorderRenderer.new(
-          window: window,
-          border_size: bordered_window.border_size,
-          inner_width: bordered_window.inner_width,
-          inner_height: bordered_window.inner_height
+          bordered_window: bordered_window
         ).render
 
         window.cursor.reset_position
@@ -78,7 +50,6 @@ module Termplot
       end
 
       private
-      attr_reader :max_count, :decimals, :color
 
       def default_border_size
         Border.new(2, 1, 1, 4)
@@ -109,6 +80,10 @@ module Termplot
 
       def min_rows
         default_border_size.top + default_border_size.bottom + 1
+      end
+
+      def title_text
+        bin_char + " " + title
       end
 
       def render_bins(positioned_bins)

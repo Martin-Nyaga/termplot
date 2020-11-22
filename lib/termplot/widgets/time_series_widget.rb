@@ -12,44 +12,16 @@ module Termplot
       DEFAULT_COLOR = "yellow"
       DEFAULT_LINE_STYLE = "line"
 
-      def initialize(
-        title: "Series",
-        color: DEFAULT_COLOR,
-        line_style: DEFAULT_LINE_STYLE,
-        cols:,
-        rows:,
-        debug: false
-      )
+      attr_reader :color, :line_style, :tick_spacing
 
-        # Window specific
-        # Default border size, right border allocation will change dynamically as
-        # data comes in to account for the length of the numbers to be printed in
-        # the axis ticks
-        @border_size = default_border_size
-        @cols = cols > min_cols ? cols : min_cols
-        @rows = rows > min_rows ? rows : min_rows
-        @window = Window.new(
-          cols: @cols,
-          rows: @rows
-        )
-        @bordered_window = BorderedWindow.new(window, default_border_size)
-        @debug = debug
-        @errors = []
-
-        # Styling
-        @title = title
-        @color = Termplot::Colors.fetch(color, DEFAULT_COLOR)
+      def post_initialize(opts)
+        @color = Termplot::Colors.fetch(opts[:color], DEFAULT_COLOR)
         @line_style = Termplot::CharacterMap::LINE_STYLES.fetch(
-          line_style,
+          opts[:line_style],
           Termplot::CharacterMap::LINE_STYLES[DEFAULT_LINE_STYLE]
         )
 
-        @decimals = 2
         @tick_spacing = 3
-        @max_count = bordered_window.inner_width
-
-        # Data
-        @dataset = Dataset.new(bordered_window.inner_width)
       end
 
       def render_to_window
@@ -75,10 +47,7 @@ module Termplot
 
         # Borders
         Termplot::Renderers::BorderRenderer.new(
-          window: window,
-          border_size: bordered_window.border_size,
-          inner_width: bordered_window.inner_width,
-          inner_height: bordered_window.inner_height
+          bordered_window: bordered_window
         ).render
 
         window.cursor.reset_position
@@ -89,18 +58,9 @@ module Termplot
       end
 
       private
-      attr_reader(
-        :title,
-        :dataset,
-        :range,
-        :color,
-        :line_style,
-        :rows,
-        :cols,
-        :border_size,
-        :decimals,
-        :tick_spacing
-      )
+      def max_count
+        bordered_window.inner_width
+      end
 
       # Axis size = length of the longest point value , formatted as a string to
       # @decimals decimal places, + 2 for some extra buffer + 1 for the border
