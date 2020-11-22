@@ -19,13 +19,16 @@ module Termplot
         color: DEFAULT_COLOR,
         debug: false
       )
-        @border_size = default_border_size
+
         @cols = cols > min_cols ? cols : min_cols
         @rows = rows > min_rows ? rows : min_rows
         @window = Window.new(
           cols: @cols,
           rows: @rows
         )
+
+        @bordered_window = BorderedWindow.new(window, default_border_size)
+        @border_size = bordered_window.border_size
         @color = color
 
         @debug = debug
@@ -52,12 +55,9 @@ module Termplot
 
         # Title bar
         Termplot::Renderers::TextRenderer.new(
-          window: window,
+          bordered_window: bordered_window,
           text: title,
-          cols: cols,
           row: 0,
-          border_size: border_size,
-          inner_width: inner_width,
           errors: errors
         ).render
 
@@ -66,9 +66,9 @@ module Termplot
         # Borders
         Termplot::Renderers::BorderRenderer.new(
           window: window,
-          border_size: border_size,
-          inner_width: inner_width,
-          inner_height: inner_height
+          border_size: bordered_window.border_size,
+          inner_width: bordered_window.inner_width,
+          inner_height: bordered_window.inner_height
         ).render
 
         window.cursor.reset_position
@@ -78,14 +78,14 @@ module Termplot
       end
 
       private
-      attr_reader :max_count, :decimals, :border_size, :color
+      attr_reader :max_count, :decimals, :color
 
       def default_border_size
         Border.new(2, 1, 1, 4)
       end
 
       def calculate_axis_size(bins)
-        return border_size if bins.empty?
+        return if bins.empty?
         border_left = bins.map { |bin| bin.midpoint.round(decimals).to_s.length }.max
         border_left += 2
 
@@ -96,26 +96,26 @@ module Termplot
           border_left = cols - 5
         end
 
-        @border_size = Border.new(2, 1, 1, border_left)
+        @bordered_window.border_size = Border.new(2, 1, 1, border_left)
       end
 
       def min_cols
-        border_size.left + border_size.right + 5
+        default_border_size.left + default_border_size.right + 5
       end
 
       def num_bins
-        inner_height
+        bordered_window.inner_height
       end
 
       def min_rows
-        border_size.top + border_size.bottom + 1
+        default_border_size.top + default_border_size.bottom + 1
       end
 
       def render_bins(positioned_bins)
         positioned_bins.each do |bin|
           window.cursor.beginning_of_line
-          window.cursor.row = bin.y + border_size.top
-          window.cursor.forward(border_size.left)
+          window.cursor.row = bin.y + bordered_window.border_size.top
+          window.cursor.forward(bordered_window.border_size.left)
           bin.x.times { window.write(bin_char) }
           window.write(" ")
 
@@ -127,10 +127,10 @@ module Termplot
 
       def render_ticks(positioned_bins)
         positioned_bins.each do |bin|
-          window.cursor.row = bin.y + border_size.top
+          window.cursor.row = bin.y + bordered_window.border_size.top
           window.cursor.beginning_of_line
 
-          bin.midpoint.round(decimals).to_s.rjust(border_size.left - 1, " ").chars.first(border_size.left - 1).each do |c|
+          bin.midpoint.round(decimals).to_s.rjust(bordered_window.border_size.left - 1, " ").chars.first(bordered_window.border_size.left - 1).each do |c|
             window.write(c)
           end
         end
@@ -148,7 +148,7 @@ module Termplot
         bins.map.with_index do |bin, i|
           row = i
           # Save some chars for count
-          col = ((bin.count.to_f / max_count) * (inner_width - 4)).floor
+          col = ((bin.count.to_f / max_count) * (bordered_window.inner_width - 4)).floor
           PositionedBin.new(bin, col, row)
         end
       end

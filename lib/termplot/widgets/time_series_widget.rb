@@ -32,6 +32,7 @@ module Termplot
           cols: @cols,
           rows: @rows
         )
+        @bordered_window = BorderedWindow.new(window, default_border_size)
         @debug = debug
         @errors = []
 
@@ -45,10 +46,10 @@ module Termplot
 
         @decimals = 2
         @tick_spacing = 3
-        @max_count = inner_width
+        @max_count = bordered_window.inner_width
 
         # Data
-        @dataset = Dataset.new(inner_width)
+        @dataset = Dataset.new(bordered_window.inner_width)
       end
 
       def render_to_window
@@ -65,12 +66,9 @@ module Termplot
 
         # Title bar
         Termplot::Renderers::TextRenderer.new(
-          window: window,
+          bordered_window: bordered_window,
           text: title_text,
           row: 0,
-          cols: cols,
-          border_size: border_size,
-          inner_width: inner_width,
           errors: errors
         ).render
         window.cursor.reset_position
@@ -78,9 +76,9 @@ module Termplot
         # Borders
         Termplot::Renderers::BorderRenderer.new(
           window: window,
-          border_size: border_size,
-          inner_width: inner_width,
-          inner_height: inner_height
+          border_size: bordered_window.border_size,
+          inner_width: bordered_window.inner_width,
+          inner_height: bordered_window.inner_height
         ).render
 
         window.cursor.reset_position
@@ -108,7 +106,7 @@ module Termplot
       # @decimals decimal places, + 2 for some extra buffer + 1 for the border
       # itself.
       def calculate_axis_size
-        return border_size if dataset.empty?
+        return if dataset.empty?
         border_right = dataset.map { |n| n.round(decimals).to_s.length }.max
         border_right += 3
 
@@ -119,7 +117,7 @@ module Termplot
           border_right = cols - 3
         end
 
-        @border_size = Border.new(2, border_right, 1, 1)
+        @bordered_window.border_size = Border.new(2, border_right, 1, 1)
       end
 
       def border_char_map
@@ -132,12 +130,12 @@ module Termplot
 
       # At minimum, 2 cols of inner_width for values
       def min_cols
-        border_size.left + border_size.right + 2
+        default_border_size.left + default_border_size.right + 2
       end
 
       # At minimum, 2 rows of inner_height for values
       def min_rows
-        border_size.top + border_size.bottom + 2
+        default_border_size.top + default_border_size.bottom + 2
       end
 
       Point = Struct.new(:x, :y, :value)
@@ -146,13 +144,13 @@ module Termplot
 
         dataset.map.with_index do |p, x|
           # Map from series Y range to inner height
-          y = map_value(p, [dataset.min, dataset.max], [0, inner_height - 1])
+          y = map_value(p, [dataset.min, dataset.max], [0, bordered_window.inner_height - 1])
 
           # Invert Y value since pixel Y is inverse of cartesian Y
-          y = border_size.top - 1 + inner_height - y.round
+          y = bordered_window.border_size.top - 1 + bordered_window.inner_height - y.round
 
           # Add padding for border width
-          Point.new(x + border_size.left, y, p.to_f)
+          Point.new(x + bordered_window.border_size.left, y, p.to_f)
         end
       end
 
@@ -207,7 +205,7 @@ module Termplot
       end
 
       def render_filled_point(point)
-        diff = (inner_height + border_size.bottom) - point.y
+        diff = (bordered_window.inner_height + bordered_window.border_size.bottom) - point.y
         diff.times { window.cursor.down }
 
         diff.times do
@@ -257,8 +255,8 @@ module Termplot
       end
 
       def render_axis(ticks)
-        window.cursor.down(border_size.top - 1)
-        window.cursor.forward(border_size.left + inner_width + 1)
+        window.cursor.down(bordered_window.border_size.top - 1)
+        window.cursor.forward(bordered_window.border_size.left + bordered_window.inner_width + 1)
 
         # Render ticks
         ticks.each do |tick|
@@ -279,7 +277,7 @@ module Termplot
       end
 
       def label_chars
-        border_size.right - 2
+        bordered_window.border_size.right - 2
       end
 
       def colored(text)

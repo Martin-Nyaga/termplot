@@ -17,6 +17,7 @@ module Termplot
           cols: @cols,
           rows: @rows
         )
+        @bordered_window = BorderedWindow.new(window, default_border_size)
         @debug = debug
         @errors = []
 
@@ -39,12 +40,9 @@ module Termplot
 
         # Title bar
         Termplot::Renderers::TextRenderer.new(
-          window: window,
+          bordered_window: bordered_window,
           text: title,
-          cols: cols,
           row: 0,
-          border_size: border_size,
-          inner_width: inner_width,
           align: :center,
           errors: errors
         ).render
@@ -54,9 +52,9 @@ module Termplot
         # Borders
         Termplot::Renderers::BorderRenderer.new(
           window: window,
-          border_size: border_size,
-          inner_width: inner_width,
-          inner_height: inner_height
+          border_size: bordered_window.border_size,
+          inner_width: bordered_window.inner_width,
+          inner_height: bordered_window.inner_height
         ).render
 
         window.cursor.reset_position
@@ -74,15 +72,15 @@ module Termplot
       end
 
       def min_rows
-        5 + border_size.top + border_size.bottom
+        5 + default_border_size.top + default_border_size.bottom
       end
 
       def render_statistics
         titles, values = formatted_stats
 
-        window.cursor.down(border_size.top)
+        window.cursor.down(bordered_window.border_size.top)
         window.cursor.beginning_of_line
-        window.cursor.forward(border_size.left)
+        window.cursor.forward(bordered_window.border_size.left)
 
         title_color = "blue"
         value_color = "green"
@@ -97,16 +95,13 @@ module Termplot
         col_separator = " #{border_char_map[:vert_right]} "
         stats_table = justified_stats.transpose.map { |row| row.join(col_separator) }
 
-        start_row = inner_height > 2 ? border_size.top - 1 + inner_height / 2 : border_size.top
+        start_row = bordered_window.inner_height > 2 ? bordered_window.border_size.top - 1 + bordered_window.inner_height / 2 : bordered_window.border_size.top
 
         stats_table.each_with_index do |row, index|
           Termplot::Renderers::TextRenderer.new(
-            window: window,
+            bordered_window: bordered_window,
             text: row,
-            cols: cols,
             row: start_row + index,
-            border_size: border_size,
-            inner_width: inner_width,
             errors: errors,
             align: :center
           ).render

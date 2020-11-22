@@ -26,10 +26,9 @@ row do
       command: "NO_COLOR=1 ticker.sh GOOG | awk '{ print $2 }'",
       interval: 10000
 
-    timeseries title: "AAPL",
+    timeseries title: "Random",
       line_style: "heavy-line",
       color: "white",
-      command: "NO_COLOR=1 ticker.sh AAPL | awk '{ print $2 }'",
-      interval: 10000
+      command: random
   end
 end

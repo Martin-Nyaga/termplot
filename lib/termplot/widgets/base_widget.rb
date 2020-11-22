@@ -20,14 +20,31 @@ module Termplot
       end
 
       private
-      attr_reader :cols, :rows, :dataset, :title, :max_count
+      attr_reader(
+        :cols,
+        :rows,
+        :dataset,
+        :title,
+        :max_count,
+        :bordered_window
+      )
 
-      def inner_width
-        cols - border_size.left - border_size.right
-      end
+      BorderedWindow = Struct.new(:window, :border_size) do
+        def inner_width
+          window.cols - border_size.left - border_size.right
+        end
 
-      def inner_height
-        rows - border_size.top - border_size.bottom
+        def inner_height
+          window.rows - border_size.top - border_size.bottom
+        end
+
+        def method_missing(method, *args, &block)
+          if window.respond_to?(method)
+            window.send(method, *args, &block)
+          else
+            super
+          end
+        end
       end
     end
   end

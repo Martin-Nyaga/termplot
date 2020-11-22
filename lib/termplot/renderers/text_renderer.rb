@@ -1,4 +1,5 @@
 require "termplot/utils/ansi_safe_string"
+
 module Termplot
   module Renderers
     class TextRenderer
@@ -6,64 +7,66 @@ module Termplot
         :window,
         :text,
         :row,
-        :cols,
-        :border_size,
-        :inner_width,
         :errors,
         :align
       )
 
       def initialize(
-        window:,
+        bordered_window:,
         text:,
         row:,
-        cols:,
-        border_size:,
-        inner_width:,
         errors:,
         align: :center
       )
-        @window      = window
-        @text        = text
-        @row         = row
-        @cols        = cols
-        @border_size = border_size
-        @inner_width = inner_width
-        @errors      = errors
-        @align       = align
+
+        @window = bordered_window
+        @text = Termplot::Utils::AnsiSafeString.new(text)
+        @row = row
+        @errors = errors
+        @align = align
       end
 
-      # Renders aligned text at a given row in a window
       def render
-        position = 0
-        ansi_safe_text = Termplot::Utils::AnsiSafeString.new(text)
-        sanitized_length = ansi_safe_text.length
-        if align == :center
-          position = [
-            1,
-            border_size.left + (inner_width - sanitized_length + 1) / 2
-          ].max
-        elsif align == :right
-          sanitized_length = sanitize_ansi(text).length
-          position = [1, border_size.left + inner_width - sanitized_length].max
-        end
-
-
-        if (sanitized_length + position) > (cols - border_size.right - 1)
-          errors.push(
-            Colors.yellow("Warning: Text has been clipped, consider using more columns with -c")
-          )
-
-          ansi_safe_text = ansi_safe_text.slice(0, cols - position)
-        end
-
         window.cursor.row = row
         window.cursor.beginning_of_line
         window.cursor.forward(position)
 
-        ansi_safe_text.each do |char|
+        clamped_text.each do |char|
           window.write(char)
         end
+      end
+
+      private
+
+      def clamped_text
+        if (text_length + position) > (window.cols - window.border_size.right - 1)
+          errors.push(
+            Colors.yellow("Warning: Text has been clipped, consider using more columns with -c")
+          )
+          text.slice(0, window.cols - position)
+        else
+          text
+        end
+      end
+
+      def position
+        @position ||= send("position_#{align}")
+      end
+
+      def position_center
+        [1, window.border_size.left + (window.inner_width - text_length + 1) / 2].max
+      end
+
+      def position_left
+        0
+      end
+
+      def position_right
+        [1, window.border_size.left + window.inner_width - text_length].max
+      end
+
+      def text_length
+        @length ||= text.length
       end
     end
   end
