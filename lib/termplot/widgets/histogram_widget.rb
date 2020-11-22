@@ -22,10 +22,15 @@ module Termplot
         window.clear
         window.cursor.reset_position
 
-        bins = bin_data(calculate_bins)
-        bins_to_render = calculate_bin_coordinates(bins)
-        calculate_axis_size(bins_to_render)
-        render_bins(bins_to_render)
+        bins = calculate_bins
+        bins = bin_data(bins)
+        bins = calculate_bin_coordinates(bins)
+        calculate_axis_size(bins)
+        render_bins(bins)
+        window.cursor.reset_position
+
+        # Ticks
+        render_ticks(bins)
         window.cursor.reset_position
 
         # Title bar
@@ -44,9 +49,6 @@ module Termplot
         ).render
 
         window.cursor.reset_position
-
-        # Ticks
-        render_ticks(bins_to_render)
       end
 
       private

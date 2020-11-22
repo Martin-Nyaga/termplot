@@ -20,7 +20,7 @@ module Termplot
                 :interval
 
     def initialize
-      default_options.each do |(option, value)|
+      self.class.default_options.each do |(option, value)|
         instance_variable_set("@#{option}", value)
       end
     end
@@ -36,8 +36,8 @@ module Termplot
       :stdin
     end
 
-    def default_options
-      @default_options ||= {
+    def self.default_options
+      {
         rows: 19,
         cols: 100,
         full_screen: false,
