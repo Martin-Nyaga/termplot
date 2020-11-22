@@ -12,7 +12,7 @@ module Termplot
       include Termplot::Renderers::BorderRenderer
       include Termplot::Renderers::TextRenderer
 
-      DEFAULT_COLOR = "red"
+      DEFAULT_COLOR = "yellow"
       DEFAULT_LINE_STYLE = "line"
 
       def initialize(

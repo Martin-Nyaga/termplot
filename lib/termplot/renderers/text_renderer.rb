@@ -18,7 +18,7 @@ module Termplot
         if align == :center
           position = [
             1,
-            (border_size.left + inner_width - sanitized_length + 1) / 2
+            border_size.left + (inner_width - sanitized_length + 1) / 2
           ].max
         elsif align == :right
           sanitized_length = sanitize_ansi(text).length

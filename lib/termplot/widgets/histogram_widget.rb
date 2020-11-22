@@ -5,6 +5,7 @@ require "termplot/renderable"
 require "termplot/window"
 require "termplot/character_map"
 require "termplot/renderers"
+require "termplot/colors"
 
 module Termplot
   module Widgets
@@ -12,10 +13,16 @@ module Termplot
       include Termplot::Renderers::BorderRenderer
       include Termplot::Renderers::TextRenderer
 
-      def initialize(title: "Histogram", cols:, rows:, debug: false)
+      DEFAULT_COLOR = "green"
+
+      def initialize(
+        title: "Histogram",
+        cols:,
+        rows:,
+        color: DEFAULT_COLOR,
+        debug: false
+      )
         @border_size = default_border_size
-        # TODO: Make num bins configurable
-        @num_bins = 5
         @cols = cols > min_cols ? cols : min_cols
         @rows = rows > min_rows ? rows : min_rows
 
@@ -23,16 +30,18 @@ module Termplot
           cols: @cols,
           rows: @rows
         )
+        @color = color
 
         @debug = debug
         @errors = []
 
-        @title = title
+        @title = bin_char + " " + title
 
         @decimals = 2
 
         # TODO: Make max count configurable
-        @max_count = 500
+        @max_count = 10_000
+        @decimals = 2
         @dataset = Dataset.new(max_count)
       end
 
@@ -48,9 +57,9 @@ module Termplot
 
         bins = bin_data(calculate_bins)
         bins_to_render = calculate_bin_coordinates(bins)
+        calculate_axis_size(bins_to_render)
         render_bins(bins_to_render)
         window.cursor.reset_position
-
 
         # Title bar
         render_aligned_text(
@@ -61,6 +70,7 @@ module Termplot
           inner_width: inner_width,
           errors: errors
         )
+
         window.cursor.reset_position
 
         # Borders
@@ -69,17 +79,41 @@ module Termplot
           inner_width: inner_width,
           inner_height: inner_height
         )
+
+        window.cursor.reset_position
+
+        # Ticks
+        render_ticks(bins_to_render)
       end
 
       private
-      attr_reader :max_count, :decimals, :border_size, :num_bins
+      attr_reader :max_count, :decimals, :border_size, :color
 
       def default_border_size
         Border.new(2, 1, 1, 4)
       end
 
+      def calculate_axis_size(bins)
+        return border_size if bins.empty?
+        border_left = bins.map { |bin| bin.midpoint.round(decimals).to_s.length }.max
+        border_left += 2
+
+        # Clamp border_left to prevent the renderer from crashing
+        # with very large numbers
+        if border_left > cols - 5
+          errors.push(Colors.yellow("Warning: Axis tick values have been clipped, consider using more columns with -c"))
+          border_left = cols - 5
+        end
+
+        @border_size = Border.new(2, 1, 1, border_left)
+      end
+
       def min_cols
-        border_size.left + border_size.right + num_bins
+        border_size.left + border_size.right + 5
+      end
+
+      def num_bins
+        inner_height
       end
 
       def min_rows
@@ -91,22 +125,35 @@ module Termplot
           window.cursor.beginning_of_line
           window.cursor.row = bin.y + border_size.top
           window.cursor.forward(border_size.left)
-          bin.x.times { window.write("▄") }
+          bin.x.times { window.write(bin_char) }
           window.write(" ")
+
           bin.count.to_s.chars.each do |char|
             window.write(char)
           end
         end
       end
 
-      PositionedBin = Struct.new(:bin, :x, :y) do
-        def count
-          bin.count
+      def render_ticks(positioned_bins)
+        positioned_bins.each do |bin|
+          window.cursor.row = bin.y + border_size.top
+          window.cursor.beginning_of_line
+
+          bin.midpoint.round(decimals).to_s.rjust(border_size.left - 1, " ").chars.first(border_size.left - 1).each do |c|
+            window.write(c)
+          end
         end
       end
+
+      PositionedBin = Struct.new(:bin, :x, :y) do
+        extend(Forwardable)
+        def_delegators(:bin, :count, :min, :max, :midpoint)
+      end
+
       def calculate_bin_coordinates(bins)
         return [] unless bins.any?
         max_count = bins.max_by { |bin| bin.count }&.count
+
         bins.map.with_index do |bin, i|
           row = i
           # Save some chars for count
@@ -141,7 +188,7 @@ module Termplot
 
         min = dataset.min
         max = dataset.max
-        bin_size = dataset.range.to_f / num_bins
+        bin_size = dataset.range.to_f / num_bins.to_f
 
         if bin_size.zero?
           min -= 1
@@ -150,11 +197,21 @@ module Termplot
         end
 
         bins = []
-        while min < max
+        while min < max && bins.length < num_bins
           bins.push(Bin.new(min, min + bin_size, 0))
           min += bin_size
         end
+
+        # Correct for floating point errors on max bin
+        if bins.any?
+          bins.last.max = max if bins.last.max < max
+        end
+
         bins
+      end
+
+      def bin_char
+        Colors.send(color, "▇")
       end
     end
   end
