@@ -1,7 +1,8 @@
-require "yaml"
+# frozen_string_literal: true
 
 require "termplot/positioned_widget"
 require "termplot/widgets"
+require "termplot/commands"
 
 module Termplot
   class FileConfig
@@ -36,6 +37,8 @@ module Termplot
     end
 
     class Panel
+      include Termplot::Commands
+
       attr_accessor(
         :rows,
         :cols,
@@ -96,6 +99,18 @@ module Termplot
         ]
         attrs = options.default_options.merge(attrs).slice(*stats_option_keys)
         children.push(StatisticsConfig.new(**attrs))
+      end
+
+      def histogram(attrs)
+        hist_option_keys = [
+          :title,
+          :cols,
+          :rows,
+          :command,
+          :interval
+        ]
+        attrs = options.default_options.merge(attrs).slice(*hist_option_keys)
+        children.push(HistogramConfig.new(**attrs))
       end
     end
 
@@ -217,6 +232,7 @@ module Termplot
         interval: nil,
         debug: nil
       )
+
         @title = title
 
         @command = command
@@ -226,6 +242,34 @@ module Termplot
 
       def widget
         @widget ||= Termplot::Widgets::StatisticsWidget.new(
+          title: title,
+          cols: cols,
+          rows: rows,
+          debug: debug
+        )
+      end
+    end
+
+    class HistogramConfig < WidgetConfig
+      attr_reader :title
+      def initialize(
+        rows: nil,
+        cols: nil,
+        title: nil,
+        command: nil,
+        interval: nil,
+        debug: nil
+      )
+
+        @title = title
+
+        @command = command
+        @interval = interval
+        @debug = debug
+      end
+
+      def widget
+        @widget ||= Termplot::Widgets::HistogramWidget.new(
           title: title,
           cols: cols,
           rows: rows,

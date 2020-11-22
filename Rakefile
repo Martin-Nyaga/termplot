@@ -4,7 +4,7 @@ require "bundler/gem_tasks"
 extend Termplot::Commands
 extend Termplot::StdinCommands
 
-SAMPLE_FILE = "./sample.rb"
+SAMPLE_FILES_PATH = "examples"
 def termplot_binary
   "ruby -Ilib bin/termplot"
 end
@@ -15,7 +15,7 @@ namespace :test do
   end
 
   task :file do
-    cmd = %( #{termplot_binary} -f #{SAMPLE_FILE} -r30 -c100)
+    cmd = %( #{termplot_binary} -f #{File.join(SAMPLE_FILES_PATH, ARGV[2])} #{ARGV[3..-1].join(" ")})
     exec cmd 
   end
 

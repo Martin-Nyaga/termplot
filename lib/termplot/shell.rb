@@ -9,6 +9,8 @@ module Termplot
       CURSOR_SHOW = "\e[?25h"
       CLEAR_SCREEN = "\e[2J"
 
+      # TODO: May be able to drop the dependency on Termios usinig ruby's
+      # io/console instead
       def init(clear: false)
         print CLEAR_SCREEN if clear
         # Disable echo on stdout tty, prevents printing chars if you type in

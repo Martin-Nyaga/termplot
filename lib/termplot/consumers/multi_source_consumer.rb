@@ -4,7 +4,6 @@ require "termplot/producers"
 module Termplot
   module Consumers
     class MultiSourceConsumer < BaseConsumer
-      # Build widget hierarchy and return flat array of positioned widgets
       def positioned_widgets
         @positioned_widgets ||= config.positioned_widgets
       end

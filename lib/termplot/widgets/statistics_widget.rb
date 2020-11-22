@@ -27,6 +27,7 @@ module Termplot
         @title = title
 
         @decimals = 2
+
         # TODO: Make max count configurable
         @max_count = 500
         @dataset = Dataset.new(max_count)
@@ -120,7 +121,11 @@ module Termplot
 
       def formatted_stats
         titles = %w[Samples Min Max Mean Stdev]
-        values = [:count, :min, :max, :mean, :standard_deviation].map { |stat| format_number(dataset.send(stat)) }
+
+        values = [:count, :min, :max, :mean, :standard_deviation].map do |stat|
+          format_number(dataset.send(stat))
+        end
+
         [titles, values]
       end
 

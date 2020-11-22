@@ -62,6 +62,7 @@ module Termplot
     attr_reader :brokers, :mutex, :on_message_callbacks
   end
 
+  # Broker messages in a thread-safe way between a sender and a receiver.
   class MessageBroker
     def initialize(sender:, receiver:)
       @sender = sender
@@ -91,9 +92,9 @@ module Termplot
     attr_reader :sender, :receiver, :queue, :on_message_callbacks
 
     def register_callbacks
-      @on_message_callbacks.push -> (value) { queue << value }
+      on_message_callbacks.push -> (value) { queue << value }
 
-      @sender.on_message do |value|
+      sender.on_message do |value|
         on_message_callbacks.each do |block|
           block.call(value)
         end

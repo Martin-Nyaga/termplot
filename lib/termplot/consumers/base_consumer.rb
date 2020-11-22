@@ -32,8 +32,8 @@ module Termplot
         # Blocks main thread
         producer_pool.start_and_block
 
-        # Producer threads have all exited, tell renderer to consume all
-        # messages left on the queue
+        # At this point producer threads have all exited, tell renderer to
+        # consume all messages left on the queue
         renderer_thread.continue while !broker_pool.empty
 
         # Close queues
