@@ -11,7 +11,8 @@ module Termplot
       attr_reader :window, :errors
 
       def <<(point)
-        raise "Must be implemented"
+        dataset << point
+        dataset.set_capacity(max_count)
       end
 
       def render_to_window
@@ -19,7 +20,7 @@ module Termplot
       end
 
       private
-      attr_reader :cols, :rows, :dataset, :title
+      attr_reader :cols, :rows, :dataset, :title, :max_count
 
       def inner_width
         cols - border_size.left - border_size.right

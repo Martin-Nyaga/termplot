@@ -16,11 +16,9 @@ row do
   end
 
   col do
-    timeseries title: "MSFT",
-      line_style: "heavy-line",
-      color: "blue",
-      command: "NO_COLOR=1 ticker.sh MSFT | awk '{ print $2 }'",
-      interval: 10000
+    histogram title: "Random",
+              command: "echo $RANDOM | awk '{ print $0 / 10 }'",
+              interval: 1000
 
     timeseries title: "GOOG",
       line_style: "heavy-line",

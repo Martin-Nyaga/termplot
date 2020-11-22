@@ -9,9 +9,6 @@ require "termplot/renderers"
 module Termplot
   module Widgets
     class StatisticsWidget < BaseWidget
-      include Termplot::Renderers::BorderRenderer
-      include Termplot::Renderers::TextRenderer
-
       def initialize(title: "Statistics", cols:, rows:, debug: false)
         @border_size = default_border_size
         @cols = cols > min_cols ? cols : min_cols
@@ -20,7 +17,6 @@ module Termplot
           cols: @cols,
           rows: @rows
         )
-
         @debug = debug
         @errors = []
 
@@ -33,11 +29,6 @@ module Termplot
         @dataset = Dataset.new(max_count)
       end
 
-      def <<(point)
-        dataset << point
-        dataset.set_capacity(max_count)
-      end
-
       def render_to_window
         errors.clear
         window.clear
@@ -47,24 +38,26 @@ module Termplot
         window.cursor.reset_position
 
         # Title bar
-        render_aligned_text(
+        Termplot::Renderers::TextRenderer.new(
           window: window,
           text: title,
+          cols: cols,
           row: 0,
           border_size: border_size,
           inner_width: inner_width,
           align: :center,
           errors: errors
-        )
+        ).render
 
         window.cursor.reset_position
 
         # Borders
-        render_borders(
+        Termplot::Renderers::BorderRenderer.new(
           window: window,
+          border_size: border_size,
           inner_width: inner_width,
           inner_height: inner_height
-        )
+        ).render
 
         window.cursor.reset_position
       end
@@ -107,15 +100,16 @@ module Termplot
         start_row = inner_height > 2 ? border_size.top - 1 + inner_height / 2 : border_size.top
 
         stats_table.each_with_index do |row, index|
-          render_aligned_text(
+          Termplot::Renderers::TextRenderer.new(
             window: window,
             text: row,
+            cols: cols,
             row: start_row + index,
             border_size: border_size,
             inner_width: inner_width,
             errors: errors,
             align: :center
-          )
+          ).render
         end
       end
 

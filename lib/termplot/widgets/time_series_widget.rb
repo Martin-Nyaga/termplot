@@ -9,9 +9,6 @@ require "termplot/renderers"
 module Termplot
   module Widgets
     class TimeSeriesWidget < BaseWidget
-      include Termplot::Renderers::BorderRenderer
-      include Termplot::Renderers::TextRenderer
-
       DEFAULT_COLOR = "yellow"
       DEFAULT_LINE_STYLE = "line"
 
@@ -35,7 +32,6 @@ module Termplot
           cols: @cols,
           rows: @rows
         )
-
         @debug = debug
         @errors = []
 
@@ -49,14 +45,10 @@ module Termplot
 
         @decimals = 2
         @tick_spacing = 3
+        @max_count = inner_width
 
         # Data
         @dataset = Dataset.new(inner_width)
-      end
-
-      def <<(point)
-        dataset << point
-        dataset.set_capacity(inner_width)
       end
 
       def render_to_window
@@ -72,22 +64,24 @@ module Termplot
         window.cursor.reset_position
 
         # Title bar
-        render_aligned_text(
+        Termplot::Renderers::TextRenderer.new(
           window: window,
           text: title_text,
           row: 0,
+          cols: cols,
           border_size: border_size,
           inner_width: inner_width,
           errors: errors
-        )
+        ).render
         window.cursor.reset_position
 
         # Borders
-        render_borders(
+        Termplot::Renderers::BorderRenderer.new(
           window: window,
+          border_size: border_size,
           inner_width: inner_width,
           inner_height: inner_height
-        )
+        ).render
 
         window.cursor.reset_position
 
@@ -260,26 +254,6 @@ module Termplot
 
       def title_text
         colored(line_style[:point]) + " " + title
-      end
-
-      def render_title_old
-        legend_marker = colored(line_style[:point])
-        title_to_render = title
-
-        legend_position = [1, (border_size.left + 1 + inner_width) / 2 - (title_to_render.length + 2) / 2].max
-
-        if (title_to_render.length + 2 + legend_position) > cols
-          errors.push(Colors.yellow("Warning: Title has been clipped, consider using more rows with -r"))
-          title_to_render = title_to_render[0..(cols - legend_position - 2)]
-        end
-
-        window.cursor.forward(legend_position)
-        window.write(legend_marker)
-        window.write(" ")
-
-        title_to_render.chars.each do |char|
-          window.write(char)
-        end
       end
 
       def render_axis(ticks)

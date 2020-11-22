@@ -10,9 +10,6 @@ require "termplot/colors"
 module Termplot
   module Widgets
     class HistogramWidget < BaseWidget
-      include Termplot::Renderers::BorderRenderer
-      include Termplot::Renderers::TextRenderer
-
       DEFAULT_COLOR = "green"
 
       def initialize(
@@ -25,7 +22,6 @@ module Termplot
         @border_size = default_border_size
         @cols = cols > min_cols ? cols : min_cols
         @rows = rows > min_rows ? rows : min_rows
-
         @window = Window.new(
           cols: @cols,
           rows: @rows
@@ -37,17 +33,10 @@ module Termplot
 
         @title = bin_char + " " + title
 
-        @decimals = 2
-
         # TODO: Make max count configurable
         @max_count = 10_000
         @decimals = 2
         @dataset = Dataset.new(max_count)
-      end
-
-      def <<(point)
-        dataset << point
-        dataset.set_capacity(max_count)
       end
 
       def render_to_window
@@ -62,23 +51,25 @@ module Termplot
         window.cursor.reset_position
 
         # Title bar
-        render_aligned_text(
+        Termplot::Renderers::TextRenderer.new(
           window: window,
           text: title,
+          cols: cols,
           row: 0,
           border_size: border_size,
           inner_width: inner_width,
           errors: errors
-        )
+        ).render
 
         window.cursor.reset_position
 
         # Borders
-        render_borders(
+        Termplot::Renderers::BorderRenderer.new(
           window: window,
+          border_size: border_size,
           inner_width: inner_width,
           inner_height: inner_height
-        )
+        ).render
 
         window.cursor.reset_position
 

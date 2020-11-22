@@ -2,14 +2,32 @@ require "termplot/character_map"
 
 module Termplot
   module Renderers
-    module BorderRenderer
-      # Render borders defined by border_size at the edges of the given window
-      def render_borders(
+    class BorderRenderer
+      attr_reader(
+        :window,
+        :border_size,
+        :inner_width,
+        :inner_height,
+        :border_char_map
+      )
+
+      def initialize(
         window:,
+        border_size:,
         inner_width:,
         inner_height:,
         border_char_map: CharacterMap::DEFAULT
       )
+
+        @window = window
+        @border_size = border_size
+        @inner_width = inner_width
+        @inner_height = inner_height
+        @border_char_map = border_char_map
+      end
+
+      # Render borders defined by border_size at the edges of the given window
+      def render
         window.cursor.reset_position
 
         window.cursor.down(border_size.top - 1)
