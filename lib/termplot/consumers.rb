@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Termplot
   module Consumers
     autoload :BaseConsumer, "termplot/consumers/base_consumer"

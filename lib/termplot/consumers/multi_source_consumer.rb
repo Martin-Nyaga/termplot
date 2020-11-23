@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "termplot/file_config"
 require "termplot/producers"
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "termplot/renderer"
 require "termplot/message_broker"
 require "termplot/shell"

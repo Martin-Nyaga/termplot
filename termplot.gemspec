@@ -24,7 +24,4 @@ Gem::Specification.new do |spec|
   spec.bindir        = "bin"
   spec.executables   = "termplot"
   spec.require_paths = ["lib"]
-
-  # Dependencies
-  spec.add_runtime_dependency "ruby-termios", "~> 1.0"
 end
