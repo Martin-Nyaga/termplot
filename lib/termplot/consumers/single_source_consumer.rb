@@ -18,14 +18,14 @@ module Termplot
 
       private
       def widget
-        @widget ||= Termplot::Widgets::TimeSeriesWidget.new(
-          title: options.title,
-          line_style: options.line_style,
-          color: options.color,
-          cols: options.cols,
-          rows: options.rows,
-          debug: options.debug
-        )
+        return @widget if defined? @widget
+        wigdet_classes = {
+          "timeseries" => "Termplot::Widgets::TimeSeriesWidget",
+          "stats"      => "Termplot::Widgets::StatisticsWidget",
+          "hist"       => "Termplot::Widgets::HistogramWidget",
+        }
+        klass = Object.const_get(wigdet_classes[options.type])
+        @widget = klass.new(options.to_h)
       end
 
       def build_producer

@@ -34,7 +34,7 @@ module Termplot
 
         # At this point producer threads have all exited, tell renderer to
         # consume all messages left on the queue
-        renderer_thread.continue while !broker_pool.empty
+        renderer_thread.continue while !broker_pool.empty?
 
         # Close queues
         broker_pool.shutdown

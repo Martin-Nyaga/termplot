@@ -88,6 +88,10 @@ module Termplot
       end
     end
 
+    def close
+      queue.close
+    end
+
     private
     attr_reader :sender, :receiver, :queue, :on_message_callbacks
 
