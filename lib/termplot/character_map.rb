@@ -12,6 +12,7 @@ module Termplot
       top_left:   "┌",
       bot_right:  "┘",
       tick_right: "┤",
+      tick_left:  "├",
       extended:   true,
       filled:     false
     }
@@ -27,7 +28,8 @@ module Termplot
       top_right:  "┓",
       top_left:   "┏",
       bot_right:  "┛",
-      tick_right: "┫"
+      tick_right: "┫",
+      tick_left:  "┣",
     )
 
     BASIC = {

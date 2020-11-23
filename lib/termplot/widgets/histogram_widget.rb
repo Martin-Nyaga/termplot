@@ -29,10 +29,6 @@ module Termplot
         render_bins(bins)
         window.cursor.reset_position
 
-        # Ticks
-        render_ticks(bins)
-        window.cursor.reset_position
-
         # Title bar
         Termplot::Renderers::TextRenderer.new(
           bordered_window: bordered_window,
@@ -49,6 +45,10 @@ module Termplot
         ).render
 
         window.cursor.reset_position
+
+        # Ticks
+        render_ticks(bins)
+        window.cursor.reset_position
       end
 
       private
@@ -59,7 +59,7 @@ module Termplot
 
       def calculate_axis_size(bins)
         return if bins.empty?
-        border_left = bins.map { |bin| bin.midpoint.round(decimals).to_s.length }.max
+        border_left = bins.map { |bin| format_tick_label(bin.midpoint).length }.max
         border_left += 2
 
         # Clamp border_left to prevent the renderer from crashing
@@ -107,10 +107,20 @@ module Termplot
           window.cursor.row = bin.y + bordered_window.border_size.top
           window.cursor.beginning_of_line
 
-          bin.midpoint.round(decimals).to_s.rjust(bordered_window.border_size.left - 1, " ").chars.first(bordered_window.border_size.left - 1).each do |c|
+          format_tick_label(bin.midpoint).rjust(bordered_window.border_size.left - 2, " ").chars.first(bordered_window.border_size.left - 2).each do |c|
             window.write(c)
           end
+          window.write(" ")
+          window.write(border_char_map[:tick_right])
         end
+      end
+
+      def border_char_map
+        CharacterMap::DEFAULT
+      end
+
+      def format_tick_label(value)
+        "%.#{decimals}f" % value.round(decimals)
       end
 
       PositionedBin = Struct.new(:bin, :x, :y) do
