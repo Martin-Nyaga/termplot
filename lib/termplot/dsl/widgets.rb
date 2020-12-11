@@ -117,6 +117,7 @@ module Termplot
       def widget
         @widget ||= Termplot::Widgets::HistogramWidget.new(
           title: title,
+          color: color,
           cols: cols,
           rows: rows,
           debug: debug
