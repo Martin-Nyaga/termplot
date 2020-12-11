@@ -1,5 +1,7 @@
 # Termplot
 
+[![Gem Version](https://badge.fury.io/rb/termplot.svg)](https://badge.fury.io/rb/termplot)
+
 Termplot is a simple terminal plotting tool for visualising streaming data.
 
 ![Termplot Demo Image](doc/demo.png)
