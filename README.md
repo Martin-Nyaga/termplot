@@ -76,7 +76,7 @@ ping example.com |
 ```
 ![Ping Response Times Plot](doc/ping.png)
 
-##### Plot histogram of data from column 33 of a CSV file
+##### Plot histogram of data from column 33 of a CSV file:
 ```
 cat file.csv | cut -d, -f33 | tail -n +2 |
   termplot -- --hist -r30 -t "Data" --color light_black
@@ -117,7 +117,7 @@ You can configure termplot to set up a multi-chart dashboard using a ruby
 configuration file:
 
 ```
-termplot --file FILE
+termplot [--file/-f] FILE
 ```
 
 The configuration file uses a simple ruby DSL to arrange charts into rows and
@@ -125,7 +125,9 @@ columns. Each chart will take a command and optionally an interval as well as
 formatting options. Termplot will then run the command at the specified interval
 and render the resulting data into the charts.
 
-Example file (sample.rb):
+#### Example
+
+File (sample.rb):
 ```ruby
 col do
   row do
