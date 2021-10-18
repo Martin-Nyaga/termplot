@@ -29,8 +29,7 @@ module Termplot
 
     def closed?
       mutex.synchronize do
-        brokers.count > 0 &&
-          brokers.all?(:closed?)
+        (brokers.count == 0) || brokers.all?(&:closed?)
       end
     end
 
@@ -90,6 +89,10 @@ module Termplot
 
     def close
       queue.close
+    end
+
+    def closed?
+      queue.closed?
     end
 
     private
