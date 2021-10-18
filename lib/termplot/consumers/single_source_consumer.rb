@@ -25,7 +25,7 @@ module Termplot
           "hist"       => "Termplot::Widgets::HistogramWidget",
         }
         klass = Object.const_get(wigdet_classes[options.type])
-        @widget = klass.new(options.to_h)
+        @widget = klass.new(**options.to_h)
       end
 
       def build_producer
