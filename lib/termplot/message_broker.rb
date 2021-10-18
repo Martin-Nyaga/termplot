@@ -72,7 +72,7 @@ module Termplot
       register_callbacks
     end
 
-    def on_message(block = Proc.new)
+    def on_message(&block)
       on_message_callbacks.push(block)
     end
 

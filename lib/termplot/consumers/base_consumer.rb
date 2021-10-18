@@ -31,7 +31,7 @@ module Termplot
         Shell.init(clear: options.full_screen)
         renderer_thread.start
 
-        # Blocks main thread
+        # Blocks main thread to produce values from the producer pool
         producer_pool.start_and_block
 
         # At this point producer threads have all exited, tell renderer to
